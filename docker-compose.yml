@@ -1,0 +1,21 @@
+services:
+  next-app:
+    container_name: ${CONTAINER_NAME:-next-app}
+    image: ${IMAGE_NAME:-nextjs-starter}:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    restart: always
+    ports:
+      - ${PORT:-3000}:3000
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

@@ -1,0 +1,12 @@
+{
+  "App": {
+    "title": "Nextjs Starter",
+    "description": "A starter template for Next.js with i18n support."
+  },
+  "Count": {
+    "increment": "Increment",
+    "decrement": "Decrement",
+    "reset": "Reset",
+    "currentCount": "Current Count: {count}"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "recommendations": [
+    // Essential Code Quality
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // TypeScript & React
+    "dsznajder.es7-react-js-snippets",
+    "xabikos.javascriptsnippets",
+
+    // CSS & Tailwind
+    "bradlc.vscode-tailwindcss",
+    "ecmel.vscode-html-css",
+
+    // Utilities
+    "christian-kohler.path-intellisense",
+    "christian-kohler.npm-intellisense",
+    "usernamehw.errorlens",
+    "wix.vscode-import-cost",
+    "formulahendry.auto-rename-tag",
+
+    // Git & GitHub
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+    "github.vscode-github-actions",
+
+    // Code Enhancement
+    "aaron-bond.better-comments",
+    "wayou.vscode-todo-highlight",
+
+    // Theme (Optional)
+    "pkief.material-icon-theme"
+  ],
+  "unwantedRecommendations": [
+    "hookyqr.beautify",
+    "dbaeumer.jshint",
+    "ms-vscode.vscode-typescript-tslint-plugin"
+  ]
+}

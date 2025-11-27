@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev",
+      "type": "shell",
+      "command": "yarn dev",
+      "group": "build",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "yarn build",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "yarn lint",
+      "group": "test",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Lint & Fix",
+      "type": "shell",
+      "command": "yarn lint:fix",
+      "group": "test",
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Format",
+      "type": "shell",
+      "command": "yarn format",
+      "group": "test"
+    },
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "yarn type-check",
+      "group": "test",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Validate All",
+      "type": "shell",
+      "command": "yarn validate",
+      "group": "test",
+      "problemMatcher": ["$tsc", "$eslint-stylish"]
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "command": "yarn test",
+      "group": "test"
+    }
+  ]
+}

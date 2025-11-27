@@ -1,0 +1,82 @@
+{
+  "name": "teispace",
+  "version": "0.1.5",
+  "description": "A production-ready Next.js starter template with TypeScript, Tailwind CSS, Redux Toolkit, and more.",
+  "keywords": [
+    "nextjs",
+    "react",
+    "typescript",
+    "tailwindcss",
+    "starter",
+    "template",
+    "redux"
+  ],
+  "author": "Teispace",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/teispace/nextjs-starter/issues"
+  },
+  "homepage": "https://github.com/teispace/nextjs-starter#readme",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teispace/nextjs-starter.git"
+  },
+  "packageManager": "yarn@4.11.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "yarn": ">=4.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "format": "prettier --write . --ignore-path .prettierignore",
+    "format:check": "prettier --check . --ignore-path .prettierignore",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint-staged": "lint-staged",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky",
+    "postinstall": "husky",
+    "commit": "cz",
+    "test": "echo \"Skipping tests: no test framework configured yet\"",
+    "validate": "yarn lint && yarn type-check && yarn build"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.11.0",
+    "axios": "^1.13.2",
+    "clsx": "^2.1.1",
+    "next": "^16.0.5",
+    "next-intl": "^4.5.5",
+    "next-themes": "^0.4.6",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
+    "react-secure-storage": "^1.3.2",
+    "redux-persist": "^6.0.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@next/bundle-analyzer": "^16.0.5",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "commitizen": "^4.3.1",
+    "cross-env": "^10.1.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.5",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.1",
+    "prettier-plugin-tailwindcss": "^0.7.1",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  }
+}
