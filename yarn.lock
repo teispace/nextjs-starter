@@ -4944,23 +4944,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next-intl-swc-plugin-extractor@npm:^4.5.5":
-  version: 4.5.5
-  resolution: "next-intl-swc-plugin-extractor@npm:4.5.5"
-  checksum: 10c0/a0024b41b70d0251801e52aea1bf4437865da81bded42caed6681059e33908e72f4f82d69ad6371f76ae008817911196d2b4891101464d881ae683a97675540a
+"next-intl-swc-plugin-extractor@npm:^4.5.6":
+  version: 4.5.6
+  resolution: "next-intl-swc-plugin-extractor@npm:4.5.6"
+  checksum: 10c0/cee17776d3ace4ec710cb90ba605764f2e125d13e33411e5f8c69f9b6c33b7d1c35eab3ab269aa427d5ba65191ccd15a90eee85762b9d4f23b5bb40f65f59c50
   languageName: node
   linkType: hard
 
-"next-intl@npm:^4.5.5":
-  version: 4.5.5
-  resolution: "next-intl@npm:4.5.5"
+"next-intl@npm:^4.5.6":
+  version: 4.5.6
+  resolution: "next-intl@npm:4.5.6"
   dependencies:
     "@formatjs/intl-localematcher": "npm:^0.5.4"
     "@swc/core": "npm:^1.15.2"
     negotiator: "npm:^1.0.0"
-    next-intl-swc-plugin-extractor: "npm:^4.5.5"
-    po-parser: "npm:^0.1.2"
-    use-intl: "npm:^4.5.5"
+    next-intl-swc-plugin-extractor: "npm:^4.5.6"
+    po-parser: "npm:^1.0.2"
+    use-intl: "npm:^4.5.6"
   peerDependencies:
     next: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
@@ -4968,7 +4968,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/6d618229236face6a1621ec3f2f85e03069329db88c3b698a20317430f71856373bfb39dc7bd2f97f844d44c9e6ddd4505b5138a159e579a49d03d576600aa34
+  checksum: 10c0/2d2b42fc3a1aa906c000d3e43ee629a50ca9d26f754e883292c8f1adb1ba910effde0130d2294550be8343f31f25364cd5cc2f2ca54e43c9cb0430564147244c
   languageName: node
   linkType: hard
 
@@ -5344,10 +5344,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"po-parser@npm:^0.1.2":
-  version: 0.1.3
-  resolution: "po-parser@npm:0.1.3"
-  checksum: 10c0/32dc8326c283a6cc5988aac1afee53747df2193a491c0e6647202ed312ecdd0dd0b329dbf4f442b9597876715b0408167eb825e8ebe5574e06a38b63de1bbba1
+"po-parser@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "po-parser@npm:1.0.2"
+  checksum: 10c0/6763042f11f582ce85fcaf3ead8d04f5ccbefdffa8043f61c8bbf2c6a2e5fc5165317aedc708529ba396a5abfd390a3f2d5c4770f742b72e31f6bc266cffced2
   languageName: node
   linkType: hard
 
@@ -6346,7 +6346,7 @@ __metadata:
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.7"
     next: "npm:^16.0.5"
-    next-intl: "npm:^4.5.5"
+    next-intl: "npm:^4.5.6"
     next-themes: "npm:^0.4.6"
     prettier: "npm:^3.7.1"
     prettier-plugin-tailwindcss: "npm:^0.7.1"
@@ -6672,16 +6672,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-intl@npm:^4.5.5":
-  version: 4.5.5
-  resolution: "use-intl@npm:4.5.5"
+"use-intl@npm:^4.5.6":
+  version: 4.5.6
+  resolution: "use-intl@npm:4.5.6"
   dependencies:
     "@formatjs/fast-memoize": "npm:^2.2.0"
     "@schummar/icu-type-parser": "npm:1.21.5"
     intl-messageformat: "npm:^10.5.14"
   peerDependencies:
     react: ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
-  checksum: 10c0/4748ba52b4c003874957dc81dc8f450a33cd42b99f54d5aa5bfa8be3f10aece45e6a6f5e045cf78307c67c0a3edba06b9ab3612f747479cf72371f3e45e1fc2c
+  checksum: 10c0/e07fb9a4d83558019ce0c8fee7de4f22608ada3173c62e27bf3584afbe51fadeb6814fe007aaac861dab5a34ea0c1d67d2c83e331d74ef9e78e343d54b711a73
   languageName: node
   linkType: hard
 
