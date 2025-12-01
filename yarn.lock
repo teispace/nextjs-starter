@@ -4834,23 +4834,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next-intl-swc-plugin-extractor@npm:^4.5.6":
-  version: 4.5.6
-  resolution: "next-intl-swc-plugin-extractor@npm:4.5.6"
-  checksum: 10c0/cee17776d3ace4ec710cb90ba605764f2e125d13e33411e5f8c69f9b6c33b7d1c35eab3ab269aa427d5ba65191ccd15a90eee85762b9d4f23b5bb40f65f59c50
+"next-intl-swc-plugin-extractor@npm:^4.5.7":
+  version: 4.5.7
+  resolution: "next-intl-swc-plugin-extractor@npm:4.5.7"
+  checksum: 10c0/4bc2dec5cc9aae50fa42e1462192d7933626c6ebfdc1ac963ff0d6423ecdbb7ba5496399246985dd89506dc0620d0ce836b7aa358c8bd923c9a820d1150b89f0
   languageName: node
   linkType: hard
 
-"next-intl@npm:^4.5.6":
-  version: 4.5.6
-  resolution: "next-intl@npm:4.5.6"
+"next-intl@npm:^4.5.7":
+  version: 4.5.7
+  resolution: "next-intl@npm:4.5.7"
   dependencies:
     "@formatjs/intl-localematcher": "npm:^0.5.4"
     "@swc/core": "npm:^1.15.2"
     negotiator: "npm:^1.0.0"
-    next-intl-swc-plugin-extractor: "npm:^4.5.6"
+    next-intl-swc-plugin-extractor: "npm:^4.5.7"
     po-parser: "npm:^1.0.2"
-    use-intl: "npm:^4.5.6"
+    use-intl: "npm:^4.5.7"
   peerDependencies:
     next: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
@@ -4858,7 +4858,7 @@ __metadata:
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/2d2b42fc3a1aa906c000d3e43ee629a50ca9d26f754e883292c8f1adb1ba910effde0130d2294550be8343f31f25364cd5cc2f2ca54e43c9cb0430564147244c
+  checksum: 10c0/d1fa97a86486930fac76a55fcb396ebce59babb2dac3dcf3552dccca30f0a28299f31da4f6c1f25266885984c79b101b513c856091596ce6f441960177ed5bdf
   languageName: node
   linkType: hard
 
@@ -6206,7 +6206,7 @@ __metadata:
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.7"
     next: "npm:^16.0.6"
-    next-intl: "npm:^4.5.6"
+    next-intl: "npm:^4.5.7"
     next-themes: "npm:^0.4.6"
     prettier: "npm:^3.7.3"
     prettier-plugin-tailwindcss: "npm:^0.7.1"
@@ -6524,16 +6524,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-intl@npm:^4.5.6":
-  version: 4.5.6
-  resolution: "use-intl@npm:4.5.6"
+"use-intl@npm:^4.5.7":
+  version: 4.5.7
+  resolution: "use-intl@npm:4.5.7"
   dependencies:
     "@formatjs/fast-memoize": "npm:^2.2.0"
     "@schummar/icu-type-parser": "npm:1.21.5"
     intl-messageformat: "npm:^10.5.14"
   peerDependencies:
     react: ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
-  checksum: 10c0/e07fb9a4d83558019ce0c8fee7de4f22608ada3173c62e27bf3584afbe51fadeb6814fe007aaac861dab5a34ea0c1d67d2c83e331d74ef9e78e343d54b711a73
+  checksum: 10c0/7f21793190dbcb10d5cd3c8e5a5ce9dc088599abf258422fad3305545be5ddcfca87bfc4eabcb845d855fd5edfddc50470697612e7f84a41e325f5ebf34221ed
   languageName: node
   linkType: hard
 
