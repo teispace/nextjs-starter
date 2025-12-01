@@ -1,11 +1,6 @@
 import { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import withBundleAnalyzer from '@next/bundle-analyzer';
 import { isProduction } from './src/lib/config/constants';
-
-const withAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-});
 
 const nextConfig: NextConfig = {
   output: isProduction ? 'standalone' : undefined,
@@ -46,4 +41,4 @@ const nextConfig: NextConfig = {
 };
 
 const withNextIntl = createNextIntlPlugin();
-export default withNextIntl(withAnalyzer(nextConfig));
+export default withNextIntl(nextConfig);

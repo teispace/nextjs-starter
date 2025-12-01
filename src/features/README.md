@@ -113,3 +113,26 @@ export default function LoginPage() {
   return <LoginForm />;
 }
 ```
+
+## Example: Counter Feature
+
+This is an example layout for the `counter` feature showing feature-local store artifacts.
+
+```
+src/features/
+└── counter/
+    ├── components/
+    │   └── Counter.tsx
+    ├── hooks/
+    │   └── useCounter.ts
+    ├── services/
+    │   └── counter.api.ts
+    ├── store/
+    │   ├── counter.slice.ts
+    │   ├── persist.ts
+    │   └── counter.selectors.ts
+    └── types/
+        └── counter.types.ts
+```
+
+Import feature exports from the feature's public API (preferred) or import specific internals when necessary.

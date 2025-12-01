@@ -237,16 +237,27 @@ nextjs-starter/
 │   │       ├── secure-storage.service.ts       # Secure storage implementation
 │   │       └── index.ts                        # Barrel export
 │   │
-│   ├── store/                                  # Redux store
-│   │   ├── features/                           # Redux slices
-│   │   │   └── count/                          # Example count feature
-│   │   │       ├── countSlice.ts               # Redux slice
-│   │   │       └── persistConfig.ts            # Persistence configuration
+│   ├── store/                                  # Redux store (core wiring)
 │   │   ├── hooks.ts                            # Typed Redux hooks
 │   │   ├── index.ts                            # Store configuration
 │   │   ├── persistor.ts                        # Redux Persist setup
-│   │   └── rootReducer.ts                      # Root reducer
+│   │   └── rootReducer.ts                      # Root reducer (imports feature reducers)
 │   │
+│
+│   ├── features/                               # Domain-driven feature modules
+│   │   └── counter/                            # Example counter feature
+│   │       ├── components/                     # Feature UI components
+│   │       │   └── Counter.tsx
+│   │       ├── hooks/                          # Feature hooks
+│   │       │   └── useCounter.ts
+│   │       ├── services/                       # API or external services
+│   │       │   └── counter.api.ts
+│   │       ├── store/                          # Feature-local redux artifacts
+│   │       │   ├── counter.slice.ts
+│   │       │   ├── persist.ts
+│   │       │   └── counter.selectors.ts
+│   │       └── types/                          # Feature types
+│   │           └── counter.types.ts
 │   ├── styles/                                 # Global styles
 │   │   └── globals.css                         # Tailwind directives & global CSS
 │   │

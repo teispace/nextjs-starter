@@ -1,8 +1,8 @@
 import { PersistConfig } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { CountState } from './countSlice';
+import { CounterState } from '../types/counter.types';
 
-export const countPersistConfig: PersistConfig<CountState> = {
+export const countPersistConfig: PersistConfig<CounterState> = {
   key: 'count',
   storage,
   whitelist: ['value'],

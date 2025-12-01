@@ -1,7 +1,7 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
-import countReducer from './features/count/countSlice';
-import { countPersistConfig } from './features/count/persistConfig';
+import { counterReducer as countReducer, countPersistConfig } from '@/features/counter/store';
+
 export const rootReducer = combineReducers({
   count: persistReducer(countPersistConfig, countReducer),
 });
