@@ -1,4 +1,4 @@
-import { Count } from '@/components';
+import { Counter } from '@/features/counter';
 import { SupportedLocale } from '@/types/i18n';
 import { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -30,7 +30,7 @@ export default async function Home(props: Props) {
     <div className="flex h-screen w-screen items-center justify-center">
       <div className="flex flex-col items-center gap-6">
         <div className="text-2xl font-bold">{t('title')}</div>
-        <Count />
+        <Counter />
       </div>
     </div>
   );
