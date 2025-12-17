@@ -204,13 +204,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/config-conventional@npm:^20.0.0":
-  version: 20.0.0
-  resolution: "@commitlint/config-conventional@npm:20.0.0"
+"@commitlint/config-conventional@npm:^20.2.0":
+  version: 20.2.0
+  resolution: "@commitlint/config-conventional@npm:20.2.0"
   dependencies:
-    "@commitlint/types": "npm:^20.0.0"
-    conventional-changelog-conventionalcommits: "npm:^7.0.2"
-  checksum: 01f355415353f858c4fd02d8744a76cbf9c52203d06f41d44cb31642311c7860086e4c23b72b72714c5efc9c48e0d00958f4c0e7bbb4fb7d2000c412a456c148
+    "@commitlint/types": ^20.2.0
+    conventional-changelog-conventionalcommits: ^7.0.2
+  checksum: 9888436197e5863f65365f676717e3b75c3dc9a6871597e6a77ce82f23559840106ded3dec75c6b45b32f76462a6a47dde41a5d110e16a7b3af8a07219e62b49
   languageName: node
   linkType: hard
 
@@ -6242,7 +6242,7 @@ __metadata:
   resolution: "teispace@workspace:."
   dependencies:
     "@commitlint/cli": ^20.2.0
-    "@commitlint/config-conventional": ^20.0.0
+    "@commitlint/config-conventional": ^20.2.0
     "@reduxjs/toolkit": ^2.11.0
     "@tailwindcss/postcss": ^4.1.17
     "@types/node": ^24.10.1
