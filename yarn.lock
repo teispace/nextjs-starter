@@ -937,12 +937,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/eslint-plugin-next@npm:16.0.7":
-  version: 16.0.7
-  resolution: "@next/eslint-plugin-next@npm:16.0.7"
+"@next/eslint-plugin-next@npm:16.1.1":
+  version: 16.1.1
+  resolution: "@next/eslint-plugin-next@npm:16.1.1"
   dependencies:
-    fast-glob: "npm:3.3.1"
-  checksum: eecd6f3473cb24178a388cc7c4304e2ad78a8d820c7491713b0a3d4ecc9bb39c7b37058bdc685497a6c2415df74eb1443182c9bcaae2b573a88cf5706a516524
+    fast-glob: 3.3.1
+  checksum: 95e74c97c1096b6b33c6fc23a171886e1867dfe4f6f7c2b09db3bdfefeb0f003773c274319b1e4cbfbbd7a8f121f00e2da4295726f7c23ff6a7a88d10d056512
   languageName: node
   linkType: hard
 
@@ -2912,26 +2912,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-next@npm:^16.0.7":
-  version: 16.0.7
-  resolution: "eslint-config-next@npm:16.0.7"
+"eslint-config-next@npm:^16.1.1":
+  version: 16.1.1
+  resolution: "eslint-config-next@npm:16.1.1"
   dependencies:
-    "@next/eslint-plugin-next": "npm:16.0.7"
-    eslint-import-resolver-node: "npm:^0.3.6"
-    eslint-import-resolver-typescript: "npm:^3.5.2"
-    eslint-plugin-import: "npm:^2.32.0"
-    eslint-plugin-jsx-a11y: "npm:^6.10.0"
-    eslint-plugin-react: "npm:^7.37.0"
-    eslint-plugin-react-hooks: "npm:^7.0.0"
-    globals: "npm:16.4.0"
-    typescript-eslint: "npm:^8.46.0"
+    "@next/eslint-plugin-next": 16.1.1
+    eslint-import-resolver-node: ^0.3.6
+    eslint-import-resolver-typescript: ^3.5.2
+    eslint-plugin-import: ^2.32.0
+    eslint-plugin-jsx-a11y: ^6.10.0
+    eslint-plugin-react: ^7.37.0
+    eslint-plugin-react-hooks: ^7.0.0
+    globals: 16.4.0
+    typescript-eslint: ^8.46.0
   peerDependencies:
     eslint: ">=9.0.0"
     typescript: ">=3.3.1"
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 968f0c29d9533a0202ff5cd75672b91c5fb7583c1d8784fbf6123848c38dee84ca07bb7c53cd87a4854bb494f3b30235716a14a011392fa3092aa02d5b02a3b1
+  checksum: b394d048cf0721ac5836294868a7601994c2ab13b9123828a9e66d8ead844c876d5c4255dab73f948e6b85e53af14394a3fa6058625150576bed10bfdf0653a6
   languageName: node
   linkType: hard
 
@@ -6253,7 +6253,7 @@ __metadata:
     commitizen: ^4.3.1
     cz-conventional-changelog: ^3.3.0
     eslint: ^9.39.1
-    eslint-config-next: ^16.0.7
+    eslint-config-next: ^16.1.1
     eslint-config-prettier: ^10.1.8
     husky: ^9.1.7
     lint-staged: ^16.2.7
