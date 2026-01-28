@@ -93,6 +93,20 @@ export class AxiosClient {
     }
   }
 
+  async patch<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+    dataKey: DataKey = API_RESPONSE_DATA_KEY,
+  ): ResultAsync<T> {
+    try {
+      const res = await this.axios.patch(url, data, config);
+      return right(this.extractData<T>(res, dataKey));
+    } catch (err) {
+      return left(this.toApiException(err));
+    }
+  }
+
   async delete<T>(
     url: string,
     config?: AxiosRequestConfig,
