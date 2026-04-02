@@ -6,6 +6,7 @@ import { routing } from '@/i18n/routing';
 import { hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { setRequestLocale, getMessages } from 'next-intl/server';
+import { APP_NAME, APP_URL } from '@/lib/config/seo';
 
 const livvic = Livvic({
   subsets: ['latin'],
@@ -15,8 +16,27 @@ const livvic = Livvic({
 });
 
 export const metadata: Metadata = {
-  title: 'Nextjs Starter',
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: APP_NAME,
+    template: `%s | ${APP_NAME}`,
+  },
   description: 'Starter template for Next.js projects with TypeScript and Tailwind CSS',
+  openGraph: {
+    type: 'website',
+    siteName: APP_NAME,
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    'max-video-preview': -1,
+    'max-image-preview': 'large',
+    'max-snippet': -1,
+  },
 };
 
 export function generateStaticParams() {

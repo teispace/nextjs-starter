@@ -1,4 +1,5 @@
 import { Counter } from '@/features/counter';
+import { generateSEOMetadata } from '@/lib/config/seo';
 import { SupportedLocale } from '@/types/i18n';
 import { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -14,10 +15,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     namespace: 'App',
   });
 
-  return {
+  return generateSEOMetadata({
     title: t('title'),
     description: t('description'),
-  };
+    path: '/',
+  });
 }
 
 export default async function Home(props: Props) {
