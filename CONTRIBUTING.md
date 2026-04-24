@@ -145,6 +145,12 @@ yarn ci:check
 # Type check
 yarn type-check
 
+# Flag any use of an @deprecated API (TS compiler-API sweep)
+yarn check:deprecated
+
+# Run tests
+yarn test
+
 # Run all checks + build
 yarn validate
 ```

@@ -33,9 +33,11 @@ jobs:
       - name: Type check
         run: yarn type-check
 
-      - name: Build application
-        run: yarn build
+      - name: Deprecated API scan
+        run: yarn check:deprecated
 
       - name: Run tests
         run: yarn test
-        continue-on-error: true
+
+      - name: Build application
+        run: yarn build

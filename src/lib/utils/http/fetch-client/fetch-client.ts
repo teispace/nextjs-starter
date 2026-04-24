@@ -1,4 +1,5 @@
 import { API_RESPONSE_DATA_KEY } from '@/lib/config';
+import { env } from '@/lib/env';
 import { ApiException } from '@/lib/errors';
 import { type DataKey, type FetchClientOptions, left, type ResultAsync, right } from '@/types';
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
@@ -13,7 +14,7 @@ export class FetchClient {
   private refreshManager = new TokenRefreshManager();
 
   constructor(options: FetchClientOptions) {
-    this.baseURL = options?.baseURL || process.env.NEXT_PUBLIC_API_URL || '';
+    this.baseURL = options?.baseURL || env.NEXT_PUBLIC_API_URL || '';
     this.tokenStore = options.tokenStore;
     this.onUnauthorized = options.onUnauthorized;
 
@@ -37,18 +38,31 @@ export class FetchClient {
     }
 
     if (response) {
-      return new ApiException({
-        status: response.status,
-        message:
-          typeof error === 'object' && error !== null && 'message' in error
-            ? String(error.message)
-            : `Request failed with status ${response.status}`,
-        errors:
-          typeof error === 'object' && error !== null && 'errors' in error
-            ? (error as { errors: Record<string, string>[] }).errors
+      const body = (typeof error === 'object' && error !== null ? error : {}) as Record<
+        string,
+        unknown
+      >;
+      const exception = ApiException.fromResponse(
+        {
+          status: typeof body.status === 'number' ? body.status : response.status,
+          message:
+            typeof body.message === 'string'
+              ? body.message
+              : `Request failed with status ${response.status}`,
+          code: typeof body.code === 'string' ? body.code : undefined,
+          errors: Array.isArray(body.errors)
+            ? (body.errors as Array<Record<string, string>>)
             : undefined,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+          data:
+            typeof body.data === 'object' && body.data !== null
+              ? (body.data as Record<string, unknown>)
+              : undefined,
+          path: typeof body.path === 'string' ? body.path : undefined,
+        },
+        response.status,
+      );
+      if (error instanceof Error && error.stack) exception.stack = error.stack;
+      return exception;
     }
 
     if (error instanceof Error) {

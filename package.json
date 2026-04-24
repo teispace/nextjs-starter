@@ -26,6 +26,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "analyze": "ANALYZE=true next build",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
@@ -33,11 +34,14 @@
     "ci:check": "biome ci",
     "lint-staged": "lint-staged",
     "env:sync": "tsx scripts/sync-env.ts",
+    "check:deprecated": "tsx scripts/check-deprecated.ts",
     "type-check": "tsc --noEmit",
     "prepare": "husky",
     "commit": "cz",
-    "test": "echo \"Skipping tests: no test framework configured yet\"",
-    "validate": "yarn ci:check && yarn type-check && yarn build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "validate": "yarn ci:check && yarn type-check && yarn check:deprecated && yarn test && yarn build"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
@@ -45,28 +49,39 @@
     "axios": "^1.15.2",
     "next": "^16.2.4",
     "next-intl": "^4.9.1",
+    "pino": "^10.3.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-redux": "^9.2.0",
     "react-secure-storage": "^1.3.2",
     "redux": "^5.0.1",
-    "redux-persist": "^6.0.0"
+    "redux-persist": "^6.0.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@next/bundle-analyzer": "^16.2.4",
     "@tailwindcss/postcss": "^4.2.4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "husky": "^9.1.7",
+    "jsdom": "^29.0.2",
     "lint-staged": "^16.4.0",
+    "pino-pretty": "^13.1.3",
     "tailwindcss": "^4.2.4",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

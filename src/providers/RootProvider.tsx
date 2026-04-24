@@ -9,14 +9,21 @@ type RootProviderProps = {
   children: React.ReactNode;
   locale: SupportedLocale;
   messages: AbstractIntlMessages;
+  timeZone: string;
   preloadedState?: Partial<AppState>;
 };
 
-export const RootProvider = ({ children, locale, messages, preloadedState }: RootProviderProps) => {
+export const RootProvider = ({
+  children,
+  locale,
+  messages,
+  timeZone,
+  preloadedState,
+}: RootProviderProps) => {
   return (
     <StoreProvider preloadedState={preloadedState}>
       <CustomThemeProvider>
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
           {children}
         </NextIntlClientProvider>
       </CustomThemeProvider>

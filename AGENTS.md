@@ -11,6 +11,9 @@ Production-ready App Router template. Next 16, React 19, TypeScript, Tailwind v4
 ## Stack decisions (don't fight these)
 
 - **Linter/formatter**: Biome only. No ESLint, no Prettier. Config: `biome.json`. Run `yarn lint` / `yarn lint:fix` / `yarn format`. CI uses `yarn ci:check` (`biome ci`).
+- **Tests**: Vitest + React Testing Library + jsdom. Co-locate as `*.test.tsx` next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when the component needs Redux/i18n. Run with `yarn test` (or `yarn test:watch` / `yarn test:coverage`).
+- **Env vars**: Always import from `@/lib/env` (zod-validated at module load), never `process.env.NEXT_PUBLIC_*` directly. Add new vars to the schema in `src/lib/env.ts` AND to `.env.example`.
+- **Logging**: Import `logger` from `@/lib/logger` (pino) — never `console.*`. Attach context via `logger.child({ requestId, userId })`. Sensitive keys (token, password, authorization) are auto-redacted.
 - **Routing interception**: `src/proxy.ts` (Next 16 replacement for `middleware.ts`). Do NOT create `middleware.ts`.
 - **i18n**: `next-intl`. All user-facing routes live under `src/app/[locale]/`. Locale config in `src/i18n/routing.ts`; request config in `src/i18n/request.ts`.
 - **State**: Redux Toolkit + redux-persist. Store assembled in `src/store/`. Use typed hooks from `src/store/hooks.ts`, never raw `useDispatch`/`useSelector`.
@@ -49,8 +52,11 @@ src/
 
 - `yarn ci:check` — Biome lint + format + import sort (CI-optimized)
 - `yarn type-check` — `tsc --noEmit`
-- `yarn validate` — full pipeline (`ci:check` → `type-check` → `build`)
+- `yarn check:deprecated` — fails if any code uses an `@deprecated` API (uses the TS compiler API; catches what `tsc` hides at suggestion-level)
+- `yarn test` — Vitest run (CI uses this too)
+- `yarn validate` — full pipeline (`ci:check` → `type-check` → `check:deprecated` → `test` → `build`)
 - `yarn build` — production build
+- `yarn analyze` — bundle analyzer (ANALYZE=true)
 - Husky hooks: `pre-commit` runs `env:sync` + lint-staged + type-check; `pre-push` runs `validate`; `commit-msg` runs commitlint.
 
 ## Adding a dependency

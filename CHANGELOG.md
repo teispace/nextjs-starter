@@ -17,9 +17,22 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Deprecated API scanner** (`scripts/check-deprecated.ts`, `yarn check:deprecated`): walks every identifier via the TypeScript compiler API and fails if any resolved symbol carries a `@deprecated` JSDoc tag. Wired into `yarn validate` and CI. Catches deprecations that `tsc --noEmit` suppresses (they are suggestion-level, not errors).
 - `AGENTS.md` with the Next 16 "not the Next.js you know" preamble plus project-specific orientation (stack decisions, directory layout, conventions, quality gates).
 - `CLAUDE.md` importing `AGENTS.md` (standard `create-next-app@16` pattern).
 - Missing peer dep `redux@^5.0.1` (required by `react-redux` and `redux-persist`).
+- **Env validation** (`src/lib/env/`): zod schema + shared `validateConfig` util + cached loader. Throws with a formatted list of failing fields at module load. All `process.env.NEXT_PUBLIC_*` reads replaced with `env.*` imports.
+- **Logger** (`src/lib/logger/`): pino with environment-aware transport (pino-pretty in dev, raw JSON via `pino.destination({ sync: false })` in prod, silent in test). Centralized `SENSITIVE_KEYS` / `SENSITIVE_HEADERS` / `SENSITIVE_REDACTION_PATHS` constants. Replaces direct `console.*` calls in the HTTP layer.
+- **Tests**: Vitest + React Testing Library + jsdom scaffolding (`vitest.config.ts`, `test/setup.ts`, `test/test-utils.tsx` with `renderWithProviders`). Example Counter component test. New `yarn test`, `yarn test:watch`, `yarn test:coverage` scripts; CI runs tests as a required step.
+- **Bundle analyzer**: `@next/bundle-analyzer` wired behind `ANALYZE=true` with a `yarn analyze` script.
+- **Dependabot grouping + auto-merge**: patch/minor updates batched per ecosystem; `.github/workflows/dependabot-auto-merge.yml` auto-merges green patch/minor PRs.
+- **HTTP types**: new `ApiErrorResponse`, `ApiCursorMeta`, `CursorPaginatedApiResponse`, `BaseQueryParams`, `BaseCursorQueryParams`. `ApiException` gained `code` / `data` / `path` fields and a `fromResponse()` factory.
+
+### Changed (type + runtime alignment)
+
+- `ApiResponse.statusCode` → `status` to match the API envelope.
+- `ApiPaginationMeta` now includes `sortBy` and `order`.
+- Axios and fetch clients parse the full error envelope (`status`, `message`, `code`, `errors`, `data`, `path`) into `ApiException`.
 
 ### Removed
 

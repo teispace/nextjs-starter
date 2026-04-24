@@ -1,6 +1,7 @@
 import type { AxiosInstance } from 'axios';
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import { AppApis } from '@/lib/config/app-apis';
+import { logger } from '@/lib/logger';
 import { type AuthTokens, right, type TokenStore } from '@/types';
 
 export async function refreshAuthToken(
@@ -39,9 +40,7 @@ export async function refreshAuthToken(
       },
     );
   } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Token refresh failed:', error);
-    }
+    logger.error({ err: error }, 'Token refresh failed');
     return null;
   }
 }

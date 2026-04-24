@@ -1,4 +1,5 @@
 import { AppPaths } from '@/lib/config';
+import { logger } from '@/lib/logger';
 import type { DataKey, RefreshState } from '@/types';
 
 export function handleUnauthorizedRedirect(): void {
@@ -39,9 +40,7 @@ export class TokenRefreshManager {
     if (now - this.state.lastAttempt < TOKEN_REFRESH_CONFIG.COOLDOWN_MS) {
       this.state.attempts++;
       if (this.state.attempts >= TOKEN_REFRESH_CONFIG.MAX_ATTEMPTS) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('Max refresh attempts reached. Stopping to prevent infinite loop.');
-        }
+        logger.error('Max refresh attempts reached. Stopping to prevent infinite loop.');
         this.state.attempts = 0;
         return null;
       }

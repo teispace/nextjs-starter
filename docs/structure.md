@@ -88,10 +88,17 @@ nextjs-starter/
 │   │   ├── enums/
 │   │   │   ├── environment.enum.ts
 │   │   │   └── index.ts
+│   │   ├── env/                                # Env validation (zod)
+│   │   │   ├── index.ts                        # Cached `env` export
+│   │   │   ├── schema.ts                       # Zod schema + coercion helpers
+│   │   │   └── validate.ts                     # Shared validator + issue formatter
 │   │   ├── errors/                             # Error handling utilities
 │   │   │   ├── api-exception.ts
 │   │   │   ├── catch-error.ts
 │   │   │   └── index.ts
+│   │   ├── logger/                             # Pino logger
+│   │   │   ├── index.ts                        # Configured logger export
+│   │   │   └── constants.ts                    # Levels + sensitive-key redaction paths
 │   │   ├── utils/
 │   │   │   ├── http/                           # HTTP client utilities
 │   │   │   │   ├── axios-client/               # Axios-based client
@@ -153,7 +160,8 @@ nextjs-starter/
 │   └── proxy.ts                                # Next 16 proxy (replaces middleware.ts)
 │
 ├── scripts/
-│   └── sync-env.ts                             # Keeps .env.example in sync with .env
+│   ├── sync-env.ts                             # Keeps .env.example in sync with .env
+│   └── check-deprecated.ts                     # Fails if any code uses an @deprecated API
 │
 ├── .czrc                                       # Commitizen configuration
 ├── .dockerignore                               # Docker ignore patterns

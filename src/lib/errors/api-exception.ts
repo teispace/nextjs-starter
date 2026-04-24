@@ -1,27 +1,47 @@
+import type { ApiErrorResponse } from '@/types';
+
+type ApiExceptionOptions = {
+  status: number;
+  message: string;
+  code?: string;
+  errors?: Array<Record<string, string>>;
+  data?: Record<string, unknown>;
+  path?: string;
+  stack?: string;
+};
+
 export class ApiException extends Error {
   status: number;
-  errors?: Record<string, string>[];
+  code?: string;
+  errors?: Array<Record<string, string>>;
+  data?: Record<string, unknown>;
+  path?: string;
 
-  constructor({
-    status,
-    message,
-    errors,
-    stack,
-  }: {
-    status: number;
-    message: string;
-    errors?: Record<string, string>[];
-    stack?: string;
-  }) {
+  constructor({ status, message, code, errors, data, path, stack }: ApiExceptionOptions) {
     super(message);
     this.status = status;
+    this.code = code;
     this.errors = errors;
+    this.data = data;
+    this.path = path;
 
     if (stack) {
       this.stack = stack;
     }
 
     Object.setPrototypeOf(this, ApiException.prototype);
+  }
+
+  /** Build from an API error response envelope (see `ApiErrorResponse`). */
+  static fromResponse(body: Partial<ApiErrorResponse>, fallbackStatus = 500): ApiException {
+    return new ApiException({
+      status: body.status ?? fallbackStatus,
+      message: body.message || 'An unknown error occurred',
+      code: body.code,
+      errors: body.errors,
+      data: body.data,
+      path: body.path,
+    });
   }
 
   static convertAny(error: unknown): ApiException {

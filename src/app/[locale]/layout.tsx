@@ -3,7 +3,7 @@ import '@/styles/globals.css';
 import { Livvic } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { hasLocale } from 'next-intl';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { APP_NAME, APP_URL } from '@/lib/config/seo';
 import { RootProvider } from '@/providers';
@@ -58,12 +58,12 @@ export default async function RootLayout({
 
   setRequestLocale(locale);
 
-  const messages = await getMessages();
+  const [messages, timeZone] = await Promise.all([getMessages(), getTimeZone()]);
 
   return (
     <html lang={locale} suppressHydrationWarning={true}>
       <body className={`${livvic.variable} bg-light antialiased dark:bg-dark`}>
-        <RootProvider locale={locale} messages={messages}>
+        <RootProvider locale={locale} messages={messages} timeZone={timeZone}>
           {children}
         </RootProvider>
       </body>

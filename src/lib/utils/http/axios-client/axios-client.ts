@@ -5,6 +5,7 @@ import axios, {
   type AxiosResponse,
 } from 'axios';
 import { API_RESPONSE_DATA_KEY } from '@/lib/config';
+import { env } from '@/lib/env';
 import { ApiException } from '@/lib/errors';
 import { type AxiosClientOptions, type DataKey, left, type ResultAsync, right } from '@/types';
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
@@ -20,7 +21,7 @@ export class AxiosClient {
     this.tokenStore = options.tokenStore;
 
     this.axios = axios.create({
-      baseURL: options?.baseURL || process.env.NEXT_PUBLIC_API_URL,
+      baseURL: options?.baseURL || env.NEXT_PUBLIC_API_URL,
       withCredentials: true,
       timeout: 10000,
       headers: {
@@ -47,12 +48,20 @@ export class AxiosClient {
 
   private toApiException(err: unknown): ApiException {
     if (err instanceof AxiosError) {
-      return new ApiException({
-        status: err.response?.status ?? 0,
-        message: err.response?.data?.message || err.message,
-        errors: err.response?.data?.errors,
-        stack: err.stack,
-      });
+      const body = err.response?.data;
+      const exception = ApiException.fromResponse(
+        {
+          status: body?.status ?? err.response?.status,
+          message: body?.message || err.message,
+          code: body?.code,
+          errors: body?.errors,
+          data: body?.data,
+          path: body?.path,
+        },
+        err.response?.status ?? 0,
+      );
+      if (err.stack) exception.stack = err.stack;
+      return exception;
     }
     return ApiException.convertAny(err);
   }
