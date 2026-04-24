@@ -14,7 +14,7 @@ nextjs-starter/
 │   │   ├── feature_request.md
 │   │   └── question.md
 │   ├── workflows/                              # GitHub Actions workflows
-│   │   └── ci.yml                              # CI/CD pipeline
+│   │   └── ci.yml                              # CI/CD pipeline (biome ci + type-check + build)
 │   ├── dependabot.yml                          # Dependabot configuration
 │   └── PULL_REQUEST_TEMPLATE.md                # Pull request template
 │
@@ -25,9 +25,9 @@ nextjs-starter/
 │   └── pre-push                                # Pre-push validation
 │
 ├── .vscode/                                    # VS Code workspace settings
-│   ├── extensions.json                         # Recommended extensions
+│   ├── extensions.json                         # Recommended extensions (Biome)
 │   ├── launch.json                             # Debug configurations
-│   ├── settings.json                           # Editor settings
+│   ├── settings.json                           # Editor settings (Biome as default formatter)
 │   └── tasks.json                              # Task definitions
 │
 ├── .yarn/                                      # Yarn Berry cache and plugins
@@ -40,57 +40,59 @@ nextjs-starter/
 │   └── favicon.ico                             # Site favicon
 │
 ├── src/                                        # Source code
-│   ├── app/                                    # Next.js app directory
+│   ├── app/                                    # Next.js App Router
 │   │   ├── [locale]/                           # Internationalized routes
+│   │   │   ├── error.tsx                       # Per-locale error boundary
 │   │   │   ├── layout.tsx                      # Root layout with i18n
+│   │   │   ├── not-found.tsx                   # Per-locale 404 page
 │   │   │   └── page.tsx                        # Home page
 │   │   ├── favicon.ico                         # App favicon
-│   │   └── robots.ts                           # Robots.txt generation
+│   │   ├── global-error.tsx                    # Root-level global error boundary
+│   │   ├── not-found.tsx                       # Root-level 404
+│   │   ├── robots.ts                           # Robots.txt generation
+│   │   └── sitemap.ts                          # Sitemap generation
 │   │
 │   ├── components/                             # Shared UI components
 │   │   ├── common/                             # Common reusable components
-│   │   │   └── index.ts                        # Common components exports
-│   │   └── index.ts                            # Components exports
+│   │   │   └── index.ts
+│   │   └── index.ts
 │   │
 │   ├── features/                               # Feature-based modules
 │   │   ├── counter/                            # Counter feature example
-│   │   │   ├── components/                     # Feature-specific components
-│   │   │   │   └── Counter.tsx
-│   │   │   ├── hooks/                          # Feature-specific hooks
-│   │   │   │   └── useCounter.ts
-│   │   │   ├── store/                          # Redux slice and selectors
+│   │   │   ├── components/Counter.tsx
+│   │   │   ├── hooks/useCounter.ts
+│   │   │   ├── store/                          # Redux slice, selectors, persist config
 │   │   │   │   ├── counter.selectors.ts
 │   │   │   │   ├── counter.slice.ts
 │   │   │   │   ├── index.ts
-│   │   │   │   └── persist.ts                  # Persistence configuration
-│   │   │   ├── types/                          # Feature type definitions
-│   │   │   │   └── counter.types.ts
-│   │   │   └── index.ts                        # Feature exports
-│   │   └── README.md                           # Features documentation
+│   │   │   │   └── persist.ts
+│   │   │   ├── types/counter.types.ts
+│   │   │   └── index.ts
+│   │   └── README.md                           # Feature architecture guide
 │   │
-│   ├── i18n/                                   # Internationalization
-│   │   ├── translations/                       # Translation files
-│   │   │   └── en.json                         # English translations
-│   │   ├── navigation.ts                       # i18n navigation utilities
+│   ├── i18n/                                   # Internationalization (next-intl)
+│   │   ├── translations/en.json
+│   │   ├── navigation.ts
 │   │   ├── request.ts                          # Server-side i18n
-│   │   ├── routing.ts                          # i18n routing configuration
-│   │   └── README.md                           # i18n documentation
+│   │   ├── routing.ts                          # Locale routing config
+│   │   └── README.md
 │   │
 │   ├── lib/                                    # Core utilities and configurations
 │   │   ├── config/                             # App configuration
-│   │   │   ├── app-apis.ts                     # API endpoints
-│   │   │   ├── app-locales.ts                  # Locale configuration
-│   │   │   ├── app-paths.ts                    # Route paths
-│   │   │   ├── constants.ts                    # App constants
+│   │   │   ├── app-apis.ts
+│   │   │   ├── app-locales.ts
+│   │   │   ├── app-paths.ts
+│   │   │   ├── constants.ts
+│   │   │   ├── seo.ts                          # SEO/metadata config
 │   │   │   └── index.ts
-│   │   ├── enums/                              # Enumerations
+│   │   ├── enums/
 │   │   │   ├── environment.enum.ts
 │   │   │   └── index.ts
 │   │   ├── errors/                             # Error handling utilities
-│   │   │   ├── api-exception.ts                # API error class
-│   │   │   ├── catch-error.ts                  # Error catching utility
+│   │   │   ├── api-exception.ts
+│   │   │   ├── catch-error.ts
 │   │   │   └── index.ts
-│   │   ├── utils/                              # Utility functions
+│   │   ├── utils/
 │   │   │   ├── http/                           # HTTP client utilities
 │   │   │   │   ├── axios-client/               # Axios-based client
 │   │   │   │   │   ├── axios-client.ts
@@ -104,50 +106,54 @@ nextjs-starter/
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── interceptors.ts
 │   │   │   │   │   └── token-refresh.ts
-│   │   │   │   ├── client-utils.ts             # Shared client utilities
+│   │   │   │   ├── client-utils.ts
 │   │   │   │   ├── index.ts
-│   │   │   │   ├── token-store.ts              # Token management
-│   │   │   │   └── README.md                   # HTTP client documentation
+│   │   │   │   ├── token-store.ts
+│   │   │   │   └── README.md
 │   │   │   └── index.ts
-│   │   └── validations/                        # Validation schemas
+│   │   └── validations/
 │   │       └── index.ts
 │   │
 │   ├── providers/                              # React context providers
-│   │   ├── CustomThemeProvider.tsx             # Theme provider
-│   │   ├── RootProvider.tsx                    # Root provider wrapper
-│   │   ├── StoreProvider.tsx                   # Redux store provider
+│   │   ├── CustomThemeProvider.tsx             # @teispace/next-themes wrapper
+│   │   ├── RootProvider.tsx                    # Public root composition (only advertised mount point)
+│   │   ├── StoreProvider.tsx                   # Redux store + PersistGate (internal)
 │   │   └── index.ts
 │   │
 │   ├── services/                               # Service layer
-│   │   ├── api/                                # API services
+│   │   ├── api/
 │   │   │   └── index.ts
 │   │   └── storage/                            # Storage services
 │   │       ├── index.ts
-│   │       └── secure-storage.service.ts       # Secure storage implementation
+│   │       └── secure-storage.service.ts       # react-secure-storage wrapper
 │   │
 │   ├── store/                                  # Redux store configuration
 │   │   ├── hooks.ts                            # Typed Redux hooks
-│   │   ├── index.ts                            # Store configuration
-│   │   ├── persistor.ts                        # Redux persist configuration
-│   │   └── rootReducer.ts                      # Root reducer
+│   │   ├── index.ts                            # makeStore (accepts preloadedState)
+│   │   ├── persistor.ts                        # Redux-persist setup
+│   │   ├── rootReducer.ts                      # Root reducer
+│   │   └── storage.ts                          # SSR-safe storage (noop on server, localStorage on client)
 │   │
-│   ├── styles/                                 # Global styles
-│   │   └── globals.css                         # Global CSS
+│   ├── styles/
+│   │   └── globals.css                         # Tailwind v4 global CSS
 │   │
 │   ├── types/                                  # TypeScript type definitions
-│   │   ├── common/                             # Common types
-│   │   │   ├── api.types.ts                    # API-related types
-│   │   │   ├── auth.types.ts                   # Authentication types
-│   │   │   ├── http.types.ts                   # HTTP client types
+│   │   ├── common/
+│   │   │   ├── api.types.ts
+│   │   │   ├── auth.types.ts
+│   │   │   ├── http.types.ts
 │   │   │   └── index.ts
-│   │   ├── utility/                            # Utility types
-│   │   │   ├── either.ts                       # Either monad type
-│   │   │   ├── result.ts                       # Result type
+│   │   ├── utility/
+│   │   │   ├── either.ts
+│   │   │   ├── result.ts
 │   │   │   └── index.ts
-│   │   ├── i18n.ts                             # i18n types
+│   │   ├── i18n.ts
 │   │   └── index.ts
 │   │
-│   └── proxy.ts                                # Proxy configuration
+│   └── proxy.ts                                # Next 16 proxy (replaces middleware.ts)
+│
+├── scripts/
+│   └── sync-env.ts                             # Keeps .env.example in sync with .env
 │
 ├── .czrc                                       # Commitizen configuration
 ├── .dockerignore                               # Docker ignore patterns
@@ -158,9 +164,9 @@ nextjs-starter/
 ├── .lintstagedrc.mjs                           # Lint-staged configuration
 ├── .npmrc                                      # NPM configuration
 ├── .nvmrc                                      # Node version specification
-├── .prettierignore                             # Prettier ignore patterns
-├── .prettierrc                                 # Prettier configuration
 ├── .yarnrc.yml                                 # Yarn configuration
+├── AGENTS.md                                   # Coding-agent rules (Next 16 conventions + project orientation)
+├── CLAUDE.md                                   # Imports AGENTS.md for Claude Code
 ├── CHANGELOG.md                                # Project changelog
 ├── CODE_OF_CONDUCT.md                          # Code of conduct
 ├── CONTRIBUTING.md                             # Contributing guidelines
@@ -168,13 +174,13 @@ nextjs-starter/
 ├── LICENSE                                     # Project license
 ├── README.md                                   # Project documentation
 ├── SECURITY.md                                 # Security policy
+├── biome.json                                  # Biome (lint + format + import sort) config
 ├── commitlint.config.mjs                       # Commitlint configuration
 ├── docker-compose.yml                          # Docker Compose configuration
-├── eslint.config.mjs                           # ESLint configuration
 ├── next-env.d.ts                               # Next.js TypeScript declarations
-├── next.config.ts                              # Next.js configuration
+├── next.config.ts                              # Next.js configuration (reactCompiler + next-intl + security headers)
 ├── package.json                                # Package dependencies and scripts
-├── postcss.config.mjs                          # PostCSS configuration
+├── postcss.config.mjs                          # PostCSS configuration (Tailwind v4)
 ├── tsconfig.json                               # TypeScript configuration
 └── yarn.lock                                   # Yarn dependency lock file
 ```
@@ -195,7 +201,7 @@ VS Code workspace configuration with recommended extensions, debug configuration
 
 ### `src/app/`
 
-Next.js App Router directory with internationalized routes using the `[locale]` dynamic segment. Contains layouts, pages, and route-level configurations.
+Next.js App Router directory with internationalized routes using the `[locale]` dynamic segment. Contains layouts, pages, error boundaries (`error.tsx`, `global-error.tsx`, `not-found.tsx`), and route-level metadata generation (`robots.ts`, `sitemap.ts`).
 
 ### `src/components/`
 
@@ -215,15 +221,19 @@ Core utilities, configurations, and shared logic including HTTP clients (both Ax
 
 ### `src/providers/`
 
-React context providers for theme, Redux store, and other app-wide state management.
+React context providers for theme, Redux store, and i18n. `RootProvider` is the single advertised mount point; `StoreProvider` is internal and accepts an optional `preloadedState` for server-pre-populated Redux state.
+
+### `src/proxy.ts`
+
+Edge proxy for request interception (Next 16 replacement for `middleware.ts`).
 
 ### `src/services/`
 
-Service layer for API calls and storage operations, providing abstraction over data fetching and persistence.
+Service layer for API calls and storage operations, providing abstraction over data fetching and persistence. Storage is wrapped around `react-secure-storage`.
 
 ### `src/store/`
 
-Redux Toolkit store configuration with typed hooks, root reducer, and persistence setup using redux-persist.
+Redux Toolkit store configuration with typed hooks, root reducer, persistence setup using redux-persist, and a cross-env `storage.ts` that provides real `localStorage` on the client and a no-op on the server (eliminating the redux-persist SSR warning).
 
 ### `src/types/`
 
@@ -237,10 +247,12 @@ Centralized TypeScript type definitions including common types, utility types (E
 - **HTTP Client Flexibility**: Dual HTTP client support (Axios and Fetch) with shared utilities
 - **Type Safety**: Comprehensive TypeScript usage with utility types for better type inference
 - **Internationalization**: Built-in multi-language support with next-intl
-- **Code Quality**: Automated checks with ESLint, Prettier, commitlint, and Git hooks
+- **Per-request Redux store**: `StoreProvider` uses `useRef` to create a fresh store per request (SSR-safe), with optional `preloadedState` for Server Component → Redux hydration
+- **Code Quality**: Biome (single tool for lint + format + import sort), commitlint, Husky git hooks, and GitHub Actions CI
 
 ## Additional Resources
 
+- Agent/contributor rules: `AGENTS.md` (imported by `CLAUDE.md`)
 - Feature development guide: `src/features/README.md`
 - Internationalization setup: `src/i18n/README.md`
 - HTTP client documentation: `src/lib/utils/http/README.md`

@@ -10,8 +10,7 @@ Before you begin, ensure you have the following installed:
 - **Yarn**: v4.0.0 or higher
 - **Git**: Latest stable version
 - **VSCode**: (Recommended) with the following extensions:
-  - ESLint
-  - Prettier - Code formatter
+  - Biome (`biomejs.biome`) — single extension for lint + format + import sort
   - EditorConfig for VS Code
 
 ## 🚀 Getting Started
@@ -113,10 +112,10 @@ On every commit, the following checks run automatically via Husky hooks:
 
 #### Pre-commit Hook
 
-- **Lint-staged**: Runs ESLint and Prettier on staged files only (fast)
-- **Pre-commit**: Validates staged files with lint-staged and type checks TypeScript files
-- **Pre-push**: Runs full validation (lint + type-check + build) before pushing
-- Auto-fixes formatting and linting issues where possible
+- **Lint-staged**: Runs `biome check --write` on staged files only (single command lints, formats, and sorts imports)
+- **Pre-commit**: Syncs `.env.example`, validates staged files with lint-staged, then type-checks any staged TypeScript
+- **Pre-push**: Runs full validation (`yarn validate`: `biome ci` + type-check + build) before pushing
+- Auto-fixes formatting, linting, and import-order issues where possible
 
 #### Commit-msg Hook
 
@@ -128,17 +127,20 @@ On every commit, the following checks run automatically via Husky hooks:
 Before submitting a PR, run these commands locally:
 
 ```bash
-# Lint your code
+# Lint + format + import-sort check (non-mutating, matches CI)
 yarn lint
 
-# Fix auto-fixable lint issues
+# Apply all auto-fixes (lint + format + import sort)
 yarn lint:fix
 
-# Format all files
+# Format only (write)
 yarn format
 
-# Check formatting without modifying files
+# Check formatting only (non-mutating)
 yarn format:check
+
+# CI-equivalent single-pass check (what GitHub Actions runs)
+yarn ci:check
 
 # Type check
 yarn type-check
@@ -195,9 +197,10 @@ yarn test
 When you run `git commit` or `yarn commit`:
 
 1. **Pre-commit hook triggers**:
+   - Syncs `.env.example` from `.env` (via `yarn env:sync`)
    - Runs `lint-staged` on your staged files
-   - Executes ESLint with auto-fix
-   - Formats code with Prettier
+   - Executes `biome check --write` (lint + format + import sort in one pass)
+   - Type-checks staged TypeScript files
    - If any errors occur, commit is blocked
 
 2. **Commit-msg hook triggers**:
