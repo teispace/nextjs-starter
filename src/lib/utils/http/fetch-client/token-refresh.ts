@@ -1,6 +1,6 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import { AppApis } from '@/lib/config/app-apis';
-import { AuthTokens, right, TokenStore } from '@/types';
+import { type AuthTokens, right, type TokenStore } from '@/types';
 
 export async function refreshAuthToken(
   tokenStore: TokenStore,

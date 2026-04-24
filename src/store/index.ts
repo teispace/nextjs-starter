@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
+import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
 import { Environment } from '@/lib/enums';
 import { rootReducer } from './rootReducer';
 

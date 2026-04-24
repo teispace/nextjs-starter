@@ -1,5 +1,5 @@
 import { AppPaths } from '@/lib/config';
-import { DataKey, RefreshState } from '@/types';
+import type { DataKey, RefreshState } from '@/types';
 
 export function handleUnauthorizedRedirect(): void {
   if (typeof window === 'undefined') return;
@@ -54,7 +54,9 @@ export class TokenRefreshManager {
 
     try {
       const token = await refreshFn();
-      this.state.queue.forEach((resolve) => resolve(token));
+      for (const resolve of this.state.queue) {
+        resolve(token);
+      }
       this.state.queue = [];
       return token;
     } finally {

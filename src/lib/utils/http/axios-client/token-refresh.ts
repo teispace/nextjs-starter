@@ -1,7 +1,7 @@
+import type { AxiosInstance } from 'axios';
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import { AppApis } from '@/lib/config/app-apis';
-import { AuthTokens, right, TokenStore } from '@/types';
-import { AxiosInstance } from 'axios';
+import { type AuthTokens, right, type TokenStore } from '@/types';
 
 export async function refreshAuthToken(
   tokenStore: TokenStore,

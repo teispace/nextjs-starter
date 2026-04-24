@@ -1,9 +1,9 @@
 'use client';
-import { makeStore } from '@/store';
-import { Provider } from 'react-redux';
-import { createPersistor } from '@/store/persistor';
-import { PersistGate } from 'redux-persist/integration/react';
 import { useMemo } from 'react';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
+import { makeStore } from '@/store';
+import { createPersistor } from '@/store/persistor';
 
 export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
   const store = useMemo(() => makeStore(), []);

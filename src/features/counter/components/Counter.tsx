@@ -1,6 +1,6 @@
 'use client';
-import { useCounter } from '../hooks/useCounter';
 import { useTranslations } from 'next-intl';
+import { useCounter } from '../hooks/useCounter';
 
 export function Counter() {
   const { value, inc, dec, rst } = useCounter();
@@ -10,13 +10,25 @@ export function Counter() {
     <div>
       <div>{t('currentCount', { count: value })}</div>
       <div className="flex gap-2">
-        <button onClick={inc} className="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white">
+        <button
+          type="button"
+          onClick={inc}
+          className="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white"
+        >
           {t('increment')}
         </button>
-        <button onClick={dec} className="cursor-pointer rounded bg-red-500 px-4 py-2 text-white">
+        <button
+          type="button"
+          onClick={dec}
+          className="cursor-pointer rounded bg-red-500 px-4 py-2 text-white"
+        >
           {t('decrement')}
         </button>
-        <button onClick={rst} className="cursor-pointer rounded bg-gray-500 px-4 py-2 text-white">
+        <button
+          type="button"
+          onClick={rst}
+          className="cursor-pointer rounded bg-gray-500 px-4 py-2 text-white"
+        >
           {t('reset')}
         </button>
       </div>

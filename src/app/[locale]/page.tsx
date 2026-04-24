@@ -1,8 +1,8 @@
+import type { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Counter } from '@/features/counter';
 import { generateSEOMetadata } from '@/lib/config/seo';
-import { SupportedLocale } from '@/types/i18n';
-import { Metadata } from 'next';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import type { SupportedLocale } from '@/types/i18n';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -31,7 +31,7 @@ export default async function Home(props: Props) {
   return (
     <div className="flex h-screen w-screen items-center justify-center">
       <div className="flex flex-col items-center gap-6">
-        <div className="text-2xl font-bold">{t('title')}</div>
+        <div className="font-bold text-2xl">{t('title')}</div>
         <Counter />
       </div>
     </div>

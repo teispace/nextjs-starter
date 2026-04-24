@@ -1,7 +1,12 @@
+import axios, {
+  AxiosError,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
 import { API_RESPONSE_DATA_KEY } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
-import { AxiosClientOptions, DataKey, left, ResultAsync, right } from '@/types';
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { type AxiosClientOptions, type DataKey, left, type ResultAsync, right } from '@/types';
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
 import { setupRequestInterceptor, setupResponseInterceptor } from './interceptors';
 import { refreshAuthToken } from './token-refresh';

@@ -27,11 +27,8 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run linter
-        run: yarn lint
-
-      - name: Check code formatting
-        run: yarn format:check
+      - name: Biome (lint + format + import sort)
+        run: yarn ci:check
 
       - name: Type check
         run: yarn type-check

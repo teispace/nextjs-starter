@@ -29,6 +29,7 @@ export default function GlobalError({
             {error.message || 'An unexpected error occurred.'}
           </p>
           <button
+            type="button"
             onClick={reset}
             style={{
               padding: '0.5rem 1.5rem',

@@ -1,6 +1,6 @@
 'use client';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { increment, decrement, reset } from '../store';
+import { decrement, increment, reset } from '../store';
 import { selectCountValue } from '../store/counter.selectors';
 
 export const useCounter = () => {

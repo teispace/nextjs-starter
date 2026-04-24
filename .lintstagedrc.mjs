@@ -1,6 +1,5 @@
 const config = {
-  '*.{js,jsx,ts,tsx}': ['eslint --fix', 'prettier --write'],
-  '*.{json,md,yml,yaml,css}': ['prettier --write'],
+  '*': ['biome check --write --no-errors-on-unmatched --files-ignore-unknown=true'],
 };
 
 export default config;

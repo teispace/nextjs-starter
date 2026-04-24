@@ -1,5 +1,5 @@
 import { ApiException } from '@/lib/errors';
-import { Either, Left, Right } from './either';
+import { type Either, Left, Right } from './either';
 
 export type Result<T, E = Error> = Either<E, T>;
 export type ResultVoid<E = Error> = Either<E, void>;

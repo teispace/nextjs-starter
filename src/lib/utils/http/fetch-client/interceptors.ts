@@ -1,5 +1,5 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
-import { ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
+import type { ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
 
 export async function applyRequestInterceptors(
   options: ExtendedRequestInit,
@@ -35,7 +35,7 @@ export async function applyRequestInterceptors(
 
 export async function applyResponseInterceptors(
   response: Response,
-  responseData: unknown,
+  _responseData: unknown,
   originalOptions: ExtendedRequestInit,
   tokenStore: TokenStore,
   handleTokenRefresh: () => Promise<string | null>,

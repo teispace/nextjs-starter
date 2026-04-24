@@ -1,8 +1,7 @@
 {
   "recommendations": [
     // Essential Code Quality
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
+    "biomejs.biome",
 
     // TypeScript & React
     "dsznajder.es7-react-js-snippets",
@@ -34,6 +33,8 @@
   "unwantedRecommendations": [
     "hookyqr.beautify",
     "dbaeumer.jshint",
-    "ms-vscode.vscode-typescript-tslint-plugin"
+    "ms-vscode.vscode-typescript-tslint-plugin",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
   ]
 }

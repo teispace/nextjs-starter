@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { CounterState } from '../types/counter.types';
+import type { CounterState } from '../types/counter.types';
 
 const initialState: CounterState = {
   value: 0,

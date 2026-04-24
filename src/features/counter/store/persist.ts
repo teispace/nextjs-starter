@@ -1,6 +1,6 @@
-import { PersistConfig } from 'redux-persist';
+import type { PersistConfig } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { CounterState } from '../types/counter.types';
+import type { CounterState } from '../types/counter.types';
 
 export const countPersistConfig: PersistConfig<CounterState> = {
   key: 'count',

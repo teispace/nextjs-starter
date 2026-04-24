@@ -1,6 +1,6 @@
 import { API_RESPONSE_DATA_KEY } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
-import { DataKey, FetchClientOptions, left, ResultAsync, right } from '@/types';
+import { type DataKey, type FetchClientOptions, left, type ResultAsync, right } from '@/types';
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
 import { applyRequestInterceptors, applyResponseInterceptors } from './interceptors';
 import { refreshAuthToken } from './token-refresh';

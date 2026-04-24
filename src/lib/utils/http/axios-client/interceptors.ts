@@ -1,6 +1,11 @@
+import type {
+  AxiosError,
+  AxiosInstance,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
-import { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
-import { TokenStore } from '@/types';
+import type { TokenStore } from '@/types';
 
 export function setupRequestInterceptor(
   axiosInstance: AxiosInstance,

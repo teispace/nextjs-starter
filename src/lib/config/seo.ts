@@ -62,4 +62,4 @@ export function generateSEOMetadata({
   };
 }
 
-export { APP_URL, APP_NAME };
+export { APP_NAME, APP_URL };

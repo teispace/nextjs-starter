@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { Livvic } from 'next/font/google';
-import { RootProvider } from '@/providers';
-import { routing } from '@/i18n/routing';
-import { hasLocale } from 'next-intl';
 import { notFound } from 'next/navigation';
-import { setRequestLocale, getMessages } from 'next-intl/server';
+import { hasLocale } from 'next-intl';
+import { getMessages, setRequestLocale } from 'next-intl/server';
+import { routing } from '@/i18n/routing';
 import { APP_NAME, APP_URL } from '@/lib/config/seo';
+import { RootProvider } from '@/providers';
 
 const livvic = Livvic({
   subsets: ['latin'],
@@ -62,7 +62,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning={true}>
-      <body className={`${livvic.variable} bg-light dark:bg-dark antialiased`}>
+      <body className={`${livvic.variable} bg-light antialiased dark:bg-dark`}>
         <RootProvider locale={locale} messages={messages}>
           {children}
         </RootProvider>

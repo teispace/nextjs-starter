@@ -1,5 +1,5 @@
 import { SecureStorageService } from '@/services/storage/secure-storage.service';
-import { TokenStore } from '@/types';
+import type { TokenStore } from '@/types';
 
 export const secureStorageTokenStore: TokenStore = {
   async getAccessToken() {

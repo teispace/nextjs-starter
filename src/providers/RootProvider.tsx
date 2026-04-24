@@ -1,8 +1,7 @@
 'use client';
+import { type AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
 import { CustomThemeProvider, StoreProvider } from '@/providers';
-import { SupportedLocale } from '@/types/i18n';
-import { NextIntlClientProvider } from 'next-intl';
-import { AbstractIntlMessages } from 'next-intl';
+import type { SupportedLocale } from '@/types/i18n';
 
 export const RootProvider = ({
   children,
