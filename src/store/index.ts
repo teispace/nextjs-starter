@@ -3,9 +3,12 @@ import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist
 import { Environment } from '@/lib/enums';
 import { rootReducer } from './rootReducer';
 
-export const makeStore = () => {
-  const store = configureStore({
+export type AppState = ReturnType<typeof rootReducer>;
+
+export const makeStore = (preloadedState?: Partial<AppState>) => {
+  return configureStore({
     reducer: rootReducer,
+    preloadedState: preloadedState as AppState | undefined,
     devTools: process.env.NODE_ENV !== Environment.PRODUCTION,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
@@ -14,9 +17,7 @@ export const makeStore = () => {
         },
       }),
   });
-  return store;
 };
 
 export type AppStore = ReturnType<typeof makeStore>;
 export type AppDispatch = AppStore['dispatch'];
-export type AppState = ReturnType<AppStore['getState']>;
