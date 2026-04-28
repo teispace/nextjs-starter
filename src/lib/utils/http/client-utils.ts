@@ -51,13 +51,22 @@ export class TokenRefreshManager {
 
     this.state.isRefreshing = true;
 
-    try {
-      const token = await refreshFn();
-      for (const resolve of this.state.queue) {
+    const drainQueue = (token: string | null): void => {
+      const waiters = this.state.queue;
+      this.state.queue = [];
+      for (const resolve of waiters) {
         resolve(token);
       }
-      this.state.queue = [];
+    };
+
+    try {
+      const token = await refreshFn();
+      drainQueue(token);
       return token;
+    } catch (err) {
+      logger.error({ err }, 'Unexpected error in token refresh');
+      drainQueue(null);
+      return null;
     } finally {
       this.state.isRefreshing = false;
     }

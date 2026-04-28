@@ -1,4 +1,4 @@
-import type { AppLocale } from '@/types/i18n';
+import type { AppLocale, LocaleDirection, SupportedLocale } from '@/types/i18n';
 
 export const appLocales: AppLocale[] = [
   {
@@ -8,3 +8,7 @@ export const appLocales: AppLocale[] = [
     country: 'United States',
   },
 ];
+
+export function getLocaleDirection(locale: SupportedLocale | string): LocaleDirection {
+  return appLocales.find((l) => l.locale === locale)?.dir ?? 'ltr';
+}

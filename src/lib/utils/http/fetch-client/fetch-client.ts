@@ -87,7 +87,11 @@ export class FetchClient {
 
   private async request<T>(
     url: string,
-    options: RequestInit & { _retry?: boolean; _skipAuthInterceptor?: boolean } = {},
+    options: RequestInit & {
+      _retry?: boolean;
+      _skipAuthInterceptor?: boolean;
+      _authToken?: string;
+    } = {},
     dataKey?: DataKey,
   ): ResultAsync<T> {
     const fullURL = this.buildURL(url);
@@ -126,7 +130,11 @@ export class FetchClient {
       );
 
       if (interceptResult.shouldRetry) {
-        return this.request<T>(url, { ...options, _retry: true }, dataKey);
+        return this.request<T>(
+          url,
+          { ...options, _retry: true, _authToken: interceptResult.newToken },
+          dataKey,
+        );
       }
 
       if (interceptResult.shouldReject) {

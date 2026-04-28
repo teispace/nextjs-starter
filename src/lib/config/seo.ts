@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { routing } from '@/i18n/routing';
 import { env } from '@/lib/env';
 
 const APP_URL = env.NEXT_PUBLIC_APP_URL;
@@ -12,6 +13,22 @@ type SEOParams = {
   noIndex?: boolean;
 };
 
+function localizedUrl(path: string, locale: string): string {
+  if (routing.localePrefix === 'never' || locale === routing.defaultLocale) {
+    return `${APP_URL}${path}`;
+  }
+  return `${APP_URL}/${locale}${path}`;
+}
+
+function buildLanguageAlternates(path: string): Record<string, string> | undefined {
+  if (routing.locales.length <= 1) return undefined;
+  const languages = Object.fromEntries(
+    routing.locales.map((locale) => [locale, localizedUrl(path, locale)]),
+  );
+  languages['x-default'] = localizedUrl(path, routing.defaultLocale);
+  return languages;
+}
+
 export function generateSEOMetadata({
   title,
   description,
@@ -19,8 +36,9 @@ export function generateSEOMetadata({
   image,
   noIndex = false,
 }: SEOParams): Metadata {
-  const url = `${APP_URL}${path}`;
+  const url = localizedUrl(path, routing.defaultLocale);
   const ogImage = image || `${APP_URL}/og-image.png`;
+  const languages = buildLanguageAlternates(path);
 
   return {
     title,
@@ -28,6 +46,7 @@ export function generateSEOMetadata({
     metadataBase: new URL(APP_URL),
     alternates: {
       canonical: url,
+      ...(languages && { languages }),
     },
     openGraph: {
       type: 'website',

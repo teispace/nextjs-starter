@@ -1,7 +1,7 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import { AppApis } from '@/lib/config/app-apis';
 import { logger } from '@/lib/logger';
-import { type AuthTokens, right, type TokenStore } from '@/types';
+import type { AuthTokens, TokenStore } from '@/types';
 
 export async function refreshAuthToken(
   tokenStore: TokenStore,
@@ -33,22 +33,14 @@ export async function refreshAuthToken(
     }
 
     const data = await response.json();
+    const { access, refresh } = data.data as AuthTokens;
 
-    const result = right(data.data as AuthTokens);
+    if (SAVE_AUTH_TOKENS) {
+      await tokenStore.saveAccessToken(access);
+      await tokenStore.saveRefreshToken(refresh);
+    }
 
-    return result.fold(
-      () => {
-        return null;
-      },
-      async ({ access, refresh }) => {
-        if (SAVE_AUTH_TOKENS) {
-          await tokenStore.saveAccessToken(access);
-          await tokenStore.saveRefreshToken(refresh);
-        }
-
-        return access;
-      },
-    );
+    return access;
   } catch (error) {
     logger.error({ err: error }, 'Token refresh failed');
     return null;

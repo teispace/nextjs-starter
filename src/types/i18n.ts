@@ -10,9 +10,12 @@ declare module 'next-intl' {
 
 export type SupportedLocale = 'en';
 
+export type LocaleDirection = 'ltr' | 'rtl';
+
 export type AppLocale = {
   name: string;
   locale: SupportedLocale;
   country: string;
   flag: string;
+  dir?: LocaleDirection;
 };

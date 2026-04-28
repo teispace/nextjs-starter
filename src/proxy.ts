@@ -9,5 +9,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/((?!api|trpc|_next|_vercel|.*\\..*).*)',
+  // Run on every path except: API/tRPC routes, Next.js internals, Vercel
+  // assets, /public files (favicon, robots, sitemap, og-image, manifest, etc.),
+  // and any path with a static-asset extension.
+  matcher: [
+    '/((?!api|trpc|_next/static|_next/image|_vercel|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|opengraph-image\\.[^/]+|twitter-image\\.[^/]+|apple-icon\\.[^/]+|icon\\.[^/]+|.*\\.(?:js|css|map|json|svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|eot|mp4|webm)).*)',
+  ],
 };

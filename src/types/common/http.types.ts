@@ -32,11 +32,13 @@ export interface FetchClientOptions {
 export interface ExtendedRequestInit extends RequestInit {
   _retry?: boolean;
   _skipAuthInterceptor?: boolean;
+  _authToken?: string;
 }
 
 export interface InterceptorResult {
   shouldRetry: boolean;
   shouldReject: boolean;
+  newToken?: string;
 }
 
 export interface RefreshState {

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { hasLocale } from 'next-intl';
 import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
+import { getLocaleDirection } from '@/lib/config/app-locales';
 import { APP_NAME, APP_URL } from '@/lib/config/seo';
 import { RootProvider } from '@/providers';
 
@@ -61,7 +62,7 @@ export default async function RootLayout({
   const [messages, timeZone] = await Promise.all([getMessages(), getTimeZone()]);
 
   return (
-    <html lang={locale} suppressHydrationWarning={true}>
+    <html lang={locale} dir={getLocaleDirection(locale)} suppressHydrationWarning={true}>
       <body className={`${livvic.variable} bg-light antialiased dark:bg-dark`}>
         <RootProvider locale={locale} messages={messages} timeZone={timeZone}>
           {children}

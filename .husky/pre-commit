@@ -2,14 +2,14 @@
 
 echo '🏗️👷 Checking your code before committing...'
 
-# 0. Sync .env.example with .env structure
-echo '🔄 Syncing .env.example...'
-yarn env:sync
+# 0. Verify .env.example is in sync with .env (read-only check)
+echo '🔄 Checking .env.example is in sync...'
+yarn env:sync --check
 if [ $? -ne 0 ]; then
-    echo '❌ env:sync failed. Please fix the error and try again.'
+    echo '❌ .env.example is out of sync with .env.'
+    echo '💡 Run "yarn env:sync" to update, then stage the change and re-commit.'
     exit 1
 fi
-git add .env.example
 
 # 1. Run lint-staged on staged files (fast)
 echo '🔍 Linting and formatting staged files...'

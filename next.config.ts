@@ -6,6 +6,11 @@ import { isProduction } from './src/lib/config/constants';
 const nextConfig: NextConfig = {
   output: isProduction ? 'standalone' : undefined,
   reactCompiler: true,
+  poweredByHeader: false,
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [],
+  },
   headers: async () => {
     return [
       {

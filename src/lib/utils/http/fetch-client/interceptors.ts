@@ -19,15 +19,17 @@ export async function applyRequestInterceptors(
     return mergedOptions;
   }
 
-  if (SAVE_AUTH_TOKENS) {
-    const token = await tokenStore.getAccessToken();
+  // Token attached directly by a retry takes precedence over any stored token,
+  // since SAVE_AUTH_TOKENS may be false (cookie-based auth) but the refresh
+  // endpoint still returns a fresh access token we need to forward.
+  const directToken = options._authToken;
+  const token = directToken ?? (SAVE_AUTH_TOKENS ? await tokenStore.getAccessToken() : null);
 
-    if (token) {
-      mergedOptions.headers = {
-        ...mergedOptions.headers,
-        Authorization: `Bearer ${token}`,
-      };
-    }
+  if (token) {
+    mergedOptions.headers = {
+      ...mergedOptions.headers,
+      Authorization: `Bearer ${token}`,
+    };
   }
 
   return mergedOptions;
@@ -63,6 +65,7 @@ export async function applyResponseInterceptors(
   return {
     shouldRetry: true,
     shouldReject: false,
+    newToken,
   };
 }
 
