@@ -1,5 +1,7 @@
 import pino, { type Logger, type LoggerOptions } from 'pino';
+
 import { env } from '@/lib/env';
+
 import { LogLevel, SENSITIVE_REDACTION_PATHS } from './constants';
 
 const isServer = typeof window === 'undefined';

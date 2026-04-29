@@ -12,12 +12,16 @@
       "!node_modules",
       "!.next",
       "!.yarn",
+      "!.vercel",
       "!out",
       "!build",
       "!dist",
       "!coverage",
+      "!public",
       "!next-env.d.ts",
-      "!**/*.tsbuildinfo"
+      "!**/*.tsbuildinfo",
+      "!**/*.min.js",
+      "!**/*.min.css"
     ]
   },
   "formatter": {
@@ -25,9 +29,13 @@
     "indentStyle": "space",
     "indentWidth": 2,
     "lineWidth": 100,
-    "lineEnding": "lf"
+    "lineEnding": "lf",
+    "useEditorconfig": true
   },
   "javascript": {
+    "parser": {
+      "jsxEverywhere": false
+    },
     "formatter": {
       "quoteStyle": "single",
       "jsxQuoteStyle": "double",
@@ -35,10 +43,17 @@
       "trailingCommas": "all",
       "bracketSpacing": true,
       "bracketSameLine": false,
-      "arrowParentheses": "always"
-    }
+      "arrowParentheses": "always",
+      "quoteProperties": "asNeeded",
+      "attributePosition": "auto"
+    },
+    "jsxRuntime": "transparent"
   },
   "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": false
+    },
     "formatter": {
       "enabled": true,
       "trailingCommas": "none"
@@ -59,19 +74,58 @@
   },
   "linter": {
     "enabled": true,
+    "domains": {
+      "next": "recommended",
+      "react": "recommended",
+      "test": "recommended"
+    },
     "rules": {
       "recommended": true,
-      "suspicious": {
-        "noUnknownAtRules": "off"
+      "complexity": {
+        "noUselessStringConcat": "error",
+        "noUselessUndefinedInitialization": "error",
+        "useSimplifiedLogicExpression": "error"
       },
       "correctness": {
         "noUnusedVariables": {
           "level": "error",
-          "options": {
-            "ignoreRestSiblings": true
-          }
+          "options": { "ignoreRestSiblings": true }
         },
-        "noUnusedImports": "error"
+        "noUnusedImports": "error",
+        "noUnusedFunctionParameters": "warn",
+        "noUnusedPrivateClassMembers": "error",
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error"
+      },
+      "performance": {
+        "noAccumulatingSpread": "error"
+      },
+      "style": {
+        "useImportType": "error",
+        "useExportType": "error",
+        "useConsistentArrayType": {
+          "level": "error",
+          "options": { "syntax": "shorthand" }
+        },
+        "useShorthandAssign": "error",
+        "useSelfClosingElements": "error",
+        "useTemplate": "error",
+        "noNonNullAssertion": "warn",
+        "noUselessElse": "error",
+        "noParameterAssign": "error",
+        "useNodejsImportProtocol": "error",
+        "useConst": "error"
+      },
+      "suspicious": {
+        "noUnknownAtRules": "off",
+        "noConsole": {
+          "level": "error",
+          "options": { "allow": ["warn", "error"] }
+        },
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "warn",
+        "noAssignInExpressions": "error",
+        "noEmptyBlockStatements": "warn"
       },
       "nursery": {
         "useSortedClasses": {
@@ -82,18 +136,71 @@
           }
         }
       }
-    },
-    "domains": {
-      "next": "recommended",
-      "react": "recommended"
     }
   },
   "assist": {
     "enabled": true,
     "actions": {
       "source": {
-        "organizeImports": "on"
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              ["react", "react-dom", "react/**", "react-dom/**"],
+              ":BLANK_LINE:",
+              ["next", "next/**", "next-intl", "next-intl/**"],
+              ":BLANK_LINE:",
+              [":PACKAGE:", "!@/**"],
+              ":BLANK_LINE:",
+              ["@/**"],
+              ":BLANK_LINE:",
+              [":PATH:", "!**/*.css", "!**/*.scss"],
+              ":BLANK_LINE:",
+              ["**/*.css", "**/*.scss"]
+            ]
+          }
+        },
+        "useSortedKeys": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["scripts/**", "*.config.{ts,js,mjs,cjs}", "vitest.config.ts", "next.config.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.{ts,tsx}", "test/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off",
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.d.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          },
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
 }

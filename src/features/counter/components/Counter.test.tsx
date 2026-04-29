@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+
 import messages from '@/i18n/translations/en.json';
+
 import { renderWithProviders, screen, userEvent } from '../../../../test/test-utils';
 import { Counter } from './Counter';
 

@@ -1,5 +1,7 @@
 'use client';
+
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+
 import { decrement, increment, reset } from '../store';
 import { selectCountValue } from '../store/counter.selectors';
 

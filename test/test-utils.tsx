@@ -1,7 +1,10 @@
-import { type RenderOptions, render } from '@testing-library/react';
-import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
+
+import { NextIntlClientProvider } from 'next-intl';
+
+import { type RenderOptions, render } from '@testing-library/react';
 import { Provider } from 'react-redux';
+
 import { type AppState, type AppStore, makeStore } from '@/store';
 import type { SupportedLocale } from '@/types/i18n';
 

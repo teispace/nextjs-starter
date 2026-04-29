@@ -2,6 +2,7 @@ import { API_RESPONSE_DATA_KEY } from '@/lib/config';
 import { env } from '@/lib/env';
 import { ApiException } from '@/lib/errors';
 import { type DataKey, type FetchClientOptions, left, type ResultAsync, right } from '@/types';
+
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
 import { applyRequestInterceptors, applyResponseInterceptors } from './interceptors';
 import { refreshAuthToken } from './token-refresh';
@@ -51,7 +52,7 @@ export class FetchClient {
               : `Request failed with status ${response.status}`,
           code: typeof body.code === 'string' ? body.code : undefined,
           errors: Array.isArray(body.errors)
-            ? (body.errors as Array<Record<string, string>>)
+            ? (body.errors as Record<string, string>[])
             : undefined,
           data:
             typeof body.data === 'object' && body.data !== null

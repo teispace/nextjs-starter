@@ -1,8 +1,11 @@
 'use client';
+
 import { type AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
+
 import { CustomThemeProvider } from '@/providers';
 import type { AppState } from '@/store';
 import type { SupportedLocale } from '@/types/i18n';
+
 import { StoreProvider } from './StoreProvider';
 
 type RootProviderProps = {

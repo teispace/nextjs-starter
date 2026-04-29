@@ -7,8 +7,10 @@
  * Run: `yarn check:deprecated`
  * Exits 1 if any deprecated usage is found (so it can gate CI).
  */
-import path from 'node:path';
+
 import ts from 'typescript';
+
+import path from 'node:path';
 
 const cwd = process.cwd();
 const configPath = ts.findConfigFile(cwd, ts.sys.fileExists, 'tsconfig.json');

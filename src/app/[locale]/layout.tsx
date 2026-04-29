@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
+
 import { Livvic } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { hasLocale } from 'next-intl';
 import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
+
 import { routing } from '@/i18n/routing';
 import { getLocaleDirection } from '@/lib/config/app-locales';
 import { APP_NAME, APP_URL } from '@/lib/config/seo';

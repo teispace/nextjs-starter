@@ -1,5 +1,7 @@
 'use client';
+
 import { useTranslations } from 'next-intl';
+
 import { useCounter } from '../hooks/useCounter';
 
 export function Counter() {

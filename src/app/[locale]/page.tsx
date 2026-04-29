@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+
 import { Counter } from '@/features/counter';
 import { generateSEOMetadata } from '@/lib/config/seo';
 import type { SupportedLocale } from '@/types/i18n';

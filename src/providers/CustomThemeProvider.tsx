@@ -1,4 +1,5 @@
 'use client';
+
 import { ThemeProvider } from '@teispace/next-themes';
 
 export const CustomThemeProvider = ({ children }: { children: React.ReactNode }) => {

@@ -1,5 +1,7 @@
 import { createMigrate, type PersistConfig, type PersistedState } from 'redux-persist';
+
 import storage from '@/store/storage';
+
 import type { CounterState } from '../types/counter.types';
 
 const COUNT_PERSIST_VERSION = 1;

@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
+
 import { Environment } from '@/lib/enums';
+
 import { rootReducer } from './rootReducer';
 
 export type AppState = ReturnType<typeof rootReducer>;

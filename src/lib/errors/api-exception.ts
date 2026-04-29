@@ -4,7 +4,7 @@ type ApiExceptionOptions = {
   status: number;
   message: string;
   code?: string;
-  errors?: Array<Record<string, string>>;
+  errors?: Record<string, string>[];
   data?: Record<string, unknown>;
   path?: string;
   stack?: string;
@@ -13,7 +13,7 @@ type ApiExceptionOptions = {
 export class ApiException extends Error {
   status: number;
   code?: string;
-  errors?: Array<Record<string, string>>;
+  errors?: Record<string, string>[];
   data?: Record<string, unknown>;
   path?: string;
 

@@ -1,5 +1,7 @@
 import secureLocalStorage from 'react-secure-storage';
 
+import { logger } from '@/lib/logger';
+
 const StorageKeys = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
@@ -26,6 +28,8 @@ export const SecureStorageService = {
     try {
       secureLocalStorage.removeItem(StorageKeys.ACCESS_TOKEN);
       secureLocalStorage.removeItem(StorageKeys.REFRESH_TOKEN);
-    } catch {}
+    } catch {
+      logger.debug('Failed to clear secure storage during logout');
+    }
   },
 };

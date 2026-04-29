@@ -57,7 +57,7 @@ src/
 - `yarn validate` — full pipeline (`ci:check` → `type-check` → `check:deprecated` → `test` → `build`)
 - `yarn build` — production build
 - `yarn analyze` — bundle analyzer (ANALYZE=true)
-- Husky hooks: `pre-commit` runs `env:sync` + lint-staged + type-check; `pre-push` runs `validate`; `commit-msg` runs commitlint.
+- Husky hooks: `pre-commit` runs `env:sync` + lint-staged + type-check; `pre-push` runs `ci:check` + `type-check` + `check:deprecated` + `test` (build is left to CI); `commit-msg` runs commitlint.
 
 ## Adding a dependency
 
