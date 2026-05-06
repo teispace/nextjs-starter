@@ -1921,9 +1921,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@teispace/next-themes@npm:^0.4.1":
-  version: 0.4.1
-  resolution: "@teispace/next-themes@npm:0.4.1"
+"@teispace/next-themes@npm:^0.4.2":
+  version: 0.4.2
+  resolution: "@teispace/next-themes@npm:0.4.2"
   peerDependencies:
     next: ">=13.0.0"
     react: ">=18.0.0"
@@ -1931,7 +1931,7 @@ __metadata:
   peerDependenciesMeta:
     next:
       optional: true
-  checksum: 10c0/df391d4c00dff313ad347b0dd48e0d90c632d01905162072ecee883c78d1a82b6c2f599e1c27c3f14772d18645fe9e40389cf2bb7b2a4b8ce4c008f92f416172
+  checksum: 10c0/ce56b8fba297772131cb379500734cf41d2a04b4feb5d96d8d368fbd1d3d08cba7ebb0f178f23474916045566e04ed22d20325d4b70c9d3a1ef92bbd6473b39f
   languageName: node
   linkType: hard
 
@@ -5797,7 +5797,7 @@ __metadata:
     "@next/bundle-analyzer": "npm:^16.2.4"
     "@reduxjs/toolkit": "npm:^2.11.2"
     "@tailwindcss/postcss": "npm:^4.2.4"
-    "@teispace/next-themes": "npm:^0.4.1"
+    "@teispace/next-themes": "npm:^0.4.2"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/jest-dom": "npm:^6.9.1"
     "@testing-library/react": "npm:^16.3.2"
