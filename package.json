@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
-    "@commitlint/cli": "^20.5.3",
+    "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^20.5.3",
     "@next/bundle-analyzer": "^16.2.6",
     "@tailwindcss/postcss": "^4.3.0",
