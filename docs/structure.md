@@ -126,6 +126,35 @@ nextjs-starter/
 │   │   │   │   ├── index.ts                    # Public surface: fetchClient, axiosClient, toSearchParams
 │   │   │   │   ├── token-store.ts              # secureStorageTokenStore (inert in cookie-mode)
 │   │   │   │   └── README.md
+│   │   │   ├── ws/                             # WebSocket client (Socket.IO, /ws gateway)
+│   │   │   │   ├── types/                      # Backend-mirrored event maps + payload shapes
+│   │   │   │   │   ├── events.ts               # ClientToServerEvents, ServerToClientEvents
+│   │   │   │   │   ├── payloads.ts             # WsErrorPayload, WsTokenRenewedPayload, etc.
+│   │   │   │   │   ├── disconnect-reason.ts    # WsDisconnectReason + isReconnectableReason
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── shared/                     # Internal: runtime, auth-carrier, URL composer
+│   │   │   │   │   ├── runtime.ts              # isBrowser + WsSsrError (hard SSR guard)
+│   │   │   │   │   ├── auth-carrier.ts         # buildHandshakeAuth (cookie vs bearer)
+│   │   │   │   │   ├── ws-url.ts               # getWsUrl (origin + namespace)
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── client/                     # WsClient class + default singleton
+│   │   │   │   │   ├── ws-client.ts            # Lifecycle, heartbeat, force-disconnect
+│   │   │   │   │   ├── client.ts               # `wsClient` lazy proxy singleton
+│   │   │   │   │   ├── lifecycle-emitter.ts    # Internal typed event emitter
+│   │   │   │   │   ├── types.ts                # WsStatus, WsClientOptions, WsConnectOptions
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── redux/                      # Bridge + selectors (slice lives in store/slices)
+│   │   │   │   │   ├── bridge.ts               # attachWsBridge — only path that dispatches to ws slice
+│   │   │   │   │   ├── selectors.ts            # selectWsStatus, selectWsIsConnected, ...
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── hooks/                      # React hooks
+│   │   │   │   │   ├── use-ws-status.ts        # Read connection state from Redux
+│   │   │   │   │   ├── use-ws-event.ts         # Subscribe with lazy connect on first mount
+│   │   │   │   │   ├── use-ws-emit.ts          # Typed emit accessor
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── constants.ts                # WS_NAMESPACE, WS_HEARTBEAT_INTERVAL_MS, etc.
+│   │   │   │   ├── index.ts                    # Public surface
+│   │   │   │   └── README.md
 │   │   │   └── index.ts
 │   │   └── validations/
 │   │       └── index.ts
@@ -147,7 +176,9 @@ nextjs-starter/
 │   │   ├── hooks.ts                            # Typed Redux hooks
 │   │   ├── index.ts                            # makeStore (accepts preloadedState)
 │   │   ├── persistor.ts                        # Redux-persist setup
-│   │   ├── rootReducer.ts                      # Root reducer
+│   │   ├── rootReducer.ts                      # Root reducer (ws slice NOT persisted)
+│   │   ├── slices/
+│   │   │   └── ws.slice.ts                     # WebSocket connection state (ephemeral)
 │   │   └── storage.ts                          # SSR-safe storage (noop on server, localStorage on client)
 │   │
 │   ├── styles/
