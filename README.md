@@ -10,7 +10,7 @@ A production-ready, feature-packed starter template for Next.js applications. Bu
 - **Framework** — Next.js 16 (App Router, React Compiler, `proxy.ts` edge interception), React 19, TypeScript 6, Tailwind v4.
 - **i18n** — `next-intl` with locale-scoped routes under `src/app/[locale]/`, server-configured `timeZone` to avoid hydration mismatches.
 - **State** — Redux Toolkit + redux-persist with a per-request store (`useRef`-based), SSR-safe storage (`src/store/storage.ts`), and `preloadedState` support for Server Component → Redux hydration.
-- **HTTP** — dual client support (`axiosClient` and `fetchClient`) sharing a token-refresh manager and a rich `ApiException` (status / code / errors / data / path).
+- **HTTP** — dual clients (`fetchClient` + `axiosClient`) on a shared foundation (`src/lib/utils/http/shared/`): runtime-aware cookie forwarding (browser jar in CSR, `next/headers` injection in RSC), automatic `X-Request-Id` correlation with the backend, single `parseApiError` error pipeline, cookie-mode auth by default with a one-flag flip to bearer-mode. Backend-compatible response envelope, pagination (offset + cursor), and base query types ship out of the box.
 - **Env validation** — zod-validated, cached at module load (`src/lib/env/`). Add a variable in one place and type-safety, validation, and coercion flow everywhere.
 - **Logger** — pino with env-aware transports (pretty in dev, JSON to stdout in prod, silent in test) and automatic redaction of tokens / passwords / auth headers.
 - **Theme** — `@teispace/next-themes` (drop-in replacement for the unmaintained `next-themes`).
@@ -77,7 +77,7 @@ cp .env.example .env
 
 | Variable               | Description                                                                        | Default                 |
 | :--------------------- | :--------------------------------------------------------------------------------- | :---------------------- |
-| `NEXT_PUBLIC_API_URL`  | Base URL for the backing API. Empty → relative/proxied requests.                   | `(empty)`               |
+| `NEXT_PUBLIC_API_URL`  | Bare origin of the backing API (e.g. `https://api.example.com`). The `/api/v{n}` URI-version prefix is appended internally — do not include it here. Empty → relative/proxied requests. | `(empty)`               |
 | `NEXT_PUBLIC_APP_URL`  | Public URL this app is served from (used for OG/canonical URLs).                   | `http://localhost:3000` |
 | `DEFAULT_TIMEZONE`     | IANA time zone for server-rendered date formatting. Keeps SSR deterministic.       | `UTC`                   |
 | `DEFAULT_LOCALE`       | Fallback locale when a request locale cannot be resolved.                          | `en`                    |

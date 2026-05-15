@@ -79,10 +79,11 @@ nextjs-starter/
 │   │
 │   ├── lib/                                    # Core utilities and configurations
 │   │   ├── config/                             # App configuration
-│   │   │   ├── app-apis.ts
+│   │   │   ├── api-url.ts                      # getApiBaseUrl() — bare origin + /api/v1
+│   │   │   ├── app-apis.ts                     # Backend endpoint paths
 │   │   │   ├── app-locales.ts
 │   │   │   ├── app-paths.ts
-│   │   │   ├── constants.ts
+│   │   │   ├── constants.ts                    # API_PREFIX, SAVE_AUTH_TOKENS, env flags
 │   │   │   ├── seo.ts                          # SEO/metadata config
 │   │   │   └── index.ts
 │   │   ├── enums/
@@ -100,22 +101,30 @@ nextjs-starter/
 │   │   │   ├── index.ts                        # Configured logger export
 │   │   │   └── constants.ts                    # Levels + sensitive-key redaction paths
 │   │   ├── utils/
-│   │   │   ├── http/                           # HTTP client utilities
-│   │   │   │   ├── axios-client/               # Axios-based client
+│   │   │   ├── http/                           # HTTP clients (backend-compatible transport)
+│   │   │   │   ├── shared/                     # DRY foundation used by both clients
+│   │   │   │   │   ├── cookie-injection.ts     # Runtime-aware Cookie header (CSR vs RSC)
+│   │   │   │   │   ├── server-cookies.ts       # `server-only` next/headers reader
+│   │   │   │   │   ├── request-id.ts           # X-Request-Id generation + extractors
+│   │   │   │   │   ├── response-parser.ts      # Single parseApiError for both clients
+│   │   │   │   │   ├── runtime.ts              # isBrowser / isServer
+│   │   │   │   │   ├── search-params.ts        # Typed query object → URLSearchParams
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── axios-client/               # Axios adapter on the shared foundation
 │   │   │   │   │   ├── axios-client.ts
 │   │   │   │   │   ├── client.ts
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── interceptors.ts
 │   │   │   │   │   └── token-refresh.ts
-│   │   │   │   ├── fetch-client/               # Fetch-based client
+│   │   │   │   ├── fetch-client/               # Fetch adapter on the shared foundation
 │   │   │   │   │   ├── client.ts
 │   │   │   │   │   ├── fetch-client.ts
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── interceptors.ts
 │   │   │   │   │   └── token-refresh.ts
-│   │   │   │   ├── client-utils.ts
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── token-store.ts
+│   │   │   │   ├── client-utils.ts             # TokenRefreshManager + helpers
+│   │   │   │   ├── index.ts                    # Public surface: fetchClient, axiosClient, toSearchParams
+│   │   │   │   ├── token-store.ts              # secureStorageTokenStore (inert in cookie-mode)
 │   │   │   │   └── README.md
 │   │   │   └── index.ts
 │   │   └── validations/
