@@ -1,12 +1,7 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import type { ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
 
-import {
-  generateRequestId,
-  getCookieHeaderForRequest,
-  isValidRequestId,
-  REQUEST_ID_HEADER,
-} from '../shared';
+import { generateRequestId, isValidRequestId, REQUEST_ID_HEADER } from '../shared';
 
 function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
   if (!headers) return false;
@@ -16,10 +11,23 @@ function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
   return Object.keys(headers).some((k) => k.toLowerCase() === lower);
 }
 
+/**
+ * Optional async callback that returns a `Cookie` header value to inject
+ * into the outgoing request. Returns `undefined` to skip injection.
+ *
+ * The universal `fetchClient` never passes one of these — cookies flow
+ * via the browser jar with `credentials: 'include'`. The server-only
+ * client (`@/lib/utils/http/server`) passes a callback that reads
+ * `next/headers`, which is how SSR requests carry the user's cookies to
+ * the backend.
+ */
+export type CookieResolver = () => Promise<string | undefined>;
+
 export async function applyRequestInterceptors(
   options: ExtendedRequestInit,
   tokenStore: TokenStore,
   defaultOptions: RequestInit,
+  resolveCookie?: CookieResolver,
 ): Promise<RequestInit> {
   const mergedHeaders: Record<string, string> = {
     ...(defaultOptions.headers as Record<string, string> | undefined),
@@ -34,10 +42,11 @@ export async function applyRequestInterceptors(
     mergedHeaders[REQUEST_ID_HEADER] = generateRequestId();
   }
 
-  // Cookie forwarding: a no-op in the browser (the cookie jar handles it);
-  // on the server we read next/headers and inject the Cookie header.
-  if (!hasHeader(mergedHeaders, 'cookie')) {
-    const cookieHeader = await getCookieHeaderForRequest();
+  // Cookie forwarding — only when the consumer wired in a resolver. The
+  // universal client doesn't (browser cookie jar handles it natively); the
+  // server-only client does (it reads next/headers).
+  if (resolveCookie && !hasHeader(mergedHeaders, 'cookie')) {
+    const cookieHeader = await resolveCookie();
     if (cookieHeader) mergedHeaders.Cookie = cookieHeader;
   }
 

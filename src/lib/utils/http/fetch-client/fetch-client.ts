@@ -1,6 +1,7 @@
 import { API_RESPONSE_DATA_KEY, getApiBaseUrl } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
 import {
+  type CookieResolver,
   type DataKey,
   type ExtendedRequestInit,
   type FetchClientOptions,
@@ -19,12 +20,14 @@ export class FetchClient {
   private tokenStore: FetchClientOptions['tokenStore'];
   private defaultOptions: RequestInit;
   private onUnauthorized?: () => void;
+  private cookieResolver?: CookieResolver;
   private refreshManager = new TokenRefreshManager();
 
   constructor(options: FetchClientOptions) {
     this.baseURL = options?.baseURL || getApiBaseUrl();
     this.tokenStore = options.tokenStore;
     this.onUnauthorized = options.onUnauthorized;
+    this.cookieResolver = options.cookieResolver;
 
     this.defaultOptions = {
       credentials: 'include',
@@ -92,6 +95,7 @@ export class FetchClient {
         fetchOptions,
         this.tokenStore,
         this.defaultOptions,
+        this.cookieResolver,
       );
 
       const response = await fetch(fullURL, interceptedOptions);

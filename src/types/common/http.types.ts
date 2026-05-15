@@ -27,6 +27,13 @@ export interface TokenStore {
   clear(): Promise<void>;
 }
 
+/**
+ * Optional async callback returning a `Cookie` header value to inject on
+ * every outgoing request. Only the server-mode client (`@/lib/utils/http/server`)
+ * uses this — the universal client relies on the browser cookie jar.
+ */
+export type CookieResolver = () => Promise<string | undefined>;
+
 export interface AxiosClientOptions {
   baseURL?: string;
   onUnauthorized?: () => void;
@@ -38,6 +45,8 @@ export interface AxiosClientOptions {
    * not here.
    */
   defaultHeaders?: Record<string, string>;
+  /** Wire a server-side cookie resolver. Only `@/lib/utils/http/server` uses this. */
+  cookieResolver?: CookieResolver;
 }
 
 export interface FetchClientOptions {
@@ -46,6 +55,8 @@ export interface FetchClientOptions {
   tokenStore: TokenStore;
   cache?: RequestCache;
   defaultOptions?: RequestInit;
+  /** Wire a server-side cookie resolver. Only `@/lib/utils/http/server` uses this. */
+  cookieResolver?: CookieResolver;
 }
 
 export interface ExtendedRequestInit extends RequestInit {

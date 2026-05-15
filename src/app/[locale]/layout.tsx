@@ -9,6 +9,8 @@ import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import { getLocaleDirection } from '@/lib/config/app-locales';
 import { APP_NAME, APP_URL } from '@/lib/config/seo';
+// Regression sentinel — see file comment for what this guards.
+import { HttpClientBundleSentinel } from '@/lib/utils/http/__bundle-sentinel__/client-bundle-sentinel';
 import { RootProvider } from '@/providers';
 
 const livvic = Livvic({
@@ -67,6 +69,7 @@ export default async function RootLayout({
     <html lang={locale} dir={getLocaleDirection(locale)} suppressHydrationWarning={true}>
       <body className={`${livvic.variable} bg-light antialiased dark:bg-dark`}>
         <RootProvider locale={locale} messages={messages} timeZone={timeZone}>
+          <HttpClientBundleSentinel />
           {children}
         </RootProvider>
       </body>

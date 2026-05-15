@@ -6,14 +6,9 @@ import type {
 } from 'axios';
 
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
-import type { TokenStore } from '@/types';
+import type { CookieResolver, TokenStore } from '@/types';
 
-import {
-  generateRequestId,
-  getCookieHeaderForRequest,
-  isValidRequestId,
-  REQUEST_ID_HEADER,
-} from '../shared';
+import { generateRequestId, isValidRequestId, REQUEST_ID_HEADER } from '../shared';
 
 function readHeaderInsensitive(
   headers: InternalAxiosRequestConfig['headers'],
@@ -30,6 +25,7 @@ function readHeaderInsensitive(
 export function setupRequestInterceptor(
   axiosInstance: AxiosInstance,
   tokenStore: TokenStore,
+  resolveCookie?: CookieResolver,
 ): void {
   axiosInstance.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
@@ -41,11 +37,11 @@ export function setupRequestInterceptor(
         config.headers.set(REQUEST_ID_HEADER, generateRequestId());
       }
 
-      // Cookie forwarding for server runtimes (RSC / Server Actions / Route
-      // Handlers). `withCredentials: true` is browser-only — Node has no
-      // cookie jar and silently drops it.
-      if (!readHeaderInsensitive(config.headers, 'cookie')) {
-        const cookieHeader = await getCookieHeaderForRequest();
+      // Cookie forwarding — only when the consumer wired in a resolver. The
+      // universal client doesn't (the browser cookie jar handles cookies
+      // natively via `withCredentials: true`); the server-only client does.
+      if (resolveCookie && !readHeaderInsensitive(config.headers, 'cookie')) {
+        const cookieHeader = await resolveCookie();
         if (cookieHeader) config.headers.set('Cookie', cookieHeader);
       }
 
