@@ -13,6 +13,11 @@ export interface ApiResponse<T> {
 /**
  * Error envelope returned by the API on failure. Surfaced on the client as
  * an `ApiException` by the HTTP clients.
+ *
+ * Note: the backend's error envelope does **not** include `timestamp` (only
+ * the success envelope does); it's optional here for that reason.
+ * `requestId` is set when the backend's request-correlation middleware
+ * generated/accepted one for the failed request.
  */
 export interface ApiErrorResponse {
   status: number;
@@ -21,7 +26,8 @@ export interface ApiErrorResponse {
   code?: string;
   errors?: Record<string, string>[];
   data?: Record<string, unknown>;
-  timestamp: string;
+  requestId?: string;
+  timestamp?: string;
 }
 
 /** Offset-based pagination metadata. */

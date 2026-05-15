@@ -1,9 +1,16 @@
-import { API_RESPONSE_DATA_KEY } from '@/lib/config';
-import { env } from '@/lib/env';
+import { API_RESPONSE_DATA_KEY, getApiBaseUrl } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
-import { type DataKey, type FetchClientOptions, left, type ResultAsync, right } from '@/types';
+import {
+  type DataKey,
+  type ExtendedRequestInit,
+  type FetchClientOptions,
+  left,
+  type ResultAsync,
+  right,
+} from '@/types';
 
 import { extractDataByKey, TokenRefreshManager } from '../client-utils';
+import { extractRequestIdFromHeaders, parseApiError, toSearchParams } from '../shared';
 import { applyRequestInterceptors, applyResponseInterceptors } from './interceptors';
 import { refreshAuthToken } from './token-refresh';
 
@@ -15,7 +22,7 @@ export class FetchClient {
   private refreshManager = new TokenRefreshManager();
 
   constructor(options: FetchClientOptions) {
-    this.baseURL = options?.baseURL || env.NEXT_PUBLIC_API_URL || '';
+    this.baseURL = options?.baseURL || getApiBaseUrl();
     this.tokenStore = options.tokenStore;
     this.onUnauthorized = options.onUnauthorized;
 
@@ -33,36 +40,16 @@ export class FetchClient {
     return this.refreshManager.handleRefresh(() => refreshAuthToken(this.tokenStore, this.baseURL));
   }
 
-  private toApiException(error: unknown, response?: Response): ApiException {
-    if (error instanceof ApiException) {
-      return error;
-    }
+  private toApiException(error: unknown, response?: Response, body?: unknown): ApiException {
+    if (error instanceof ApiException) return error;
 
     if (response) {
-      const body = (typeof error === 'object' && error !== null ? error : {}) as Record<
-        string,
-        unknown
-      >;
-      const exception = ApiException.fromResponse(
-        {
-          status: typeof body.status === 'number' ? body.status : response.status,
-          message:
-            typeof body.message === 'string'
-              ? body.message
-              : `Request failed with status ${response.status}`,
-          code: typeof body.code === 'string' ? body.code : undefined,
-          errors: Array.isArray(body.errors)
-            ? (body.errors as Record<string, string>[])
-            : undefined,
-          data:
-            typeof body.data === 'object' && body.data !== null
-              ? (body.data as Record<string, unknown>)
-              : undefined,
-          path: typeof body.path === 'string' ? body.path : undefined,
-        },
+      const exception = parseApiError(
+        body ?? error,
         response.status,
+        extractRequestIdFromHeaders(response.headers),
+        error instanceof Error ? error.stack : undefined,
       );
-      if (error instanceof Error && error.stack) exception.stack = error.stack;
       return exception;
     }
 
@@ -77,29 +64,32 @@ export class FetchClient {
     return ApiException.convertAny(error);
   }
 
-  private buildURL(url: string): string {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    const normalizedURL = url.startsWith('/') ? url.slice(1) : url;
-    const normalizedBase = this.baseURL.endsWith('/') ? this.baseURL.slice(0, -1) : this.baseURL;
-    return `${normalizedBase}/${normalizedURL}`;
+  private buildURL(url: string, params?: ExtendedRequestInit['params']): string {
+    const absolute =
+      url.startsWith('http://') || url.startsWith('https://')
+        ? url
+        : `${this.baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+
+    if (!params) return absolute;
+
+    const search = toSearchParams(params).toString();
+    if (!search) return absolute;
+
+    const separator = absolute.includes('?') ? '&' : '?';
+    return `${absolute}${separator}${search}`;
   }
 
   private async request<T>(
     url: string,
-    options: RequestInit & {
-      _retry?: boolean;
-      _skipAuthInterceptor?: boolean;
-      _authToken?: string;
-    } = {},
+    options: ExtendedRequestInit = {},
     dataKey?: DataKey,
   ): ResultAsync<T> {
-    const fullURL = this.buildURL(url);
+    const { params, ...fetchOptions } = options;
+    const fullURL = this.buildURL(url, params);
 
     try {
       const interceptedOptions = await applyRequestInterceptors(
-        options,
+        fetchOptions,
         this.tokenStore,
         this.defaultOptions,
       );
@@ -138,26 +128,8 @@ export class FetchClient {
         );
       }
 
-      if (interceptResult.shouldReject) {
-        const errorData = responseData as { message?: string; errors?: Record<string, string>[] };
-        return left(
-          new ApiException({
-            status: response.status,
-            message: errorData?.message || 'Unauthorized',
-            errors: errorData?.errors,
-          }),
-        );
-      }
-
-      if (!response.ok) {
-        const errorData = responseData as { message?: string; errors?: Record<string, string>[] };
-        return left(
-          new ApiException({
-            status: response.status,
-            message: errorData?.message || `Request failed with status ${response.status}`,
-            errors: errorData?.errors,
-          }),
-        );
+      if (interceptResult.shouldReject || !response.ok) {
+        return left(this.toApiException(undefined, response, responseData));
       }
 
       return right(extractDataByKey<T>(responseData, dataKey));
@@ -168,7 +140,7 @@ export class FetchClient {
 
   async get<T>(
     url: string,
-    options?: RequestInit,
+    options?: ExtendedRequestInit,
     dataKey: DataKey = API_RESPONSE_DATA_KEY,
   ): ResultAsync<T> {
     return this.request<T>(url, { ...options, method: 'GET' }, dataKey);
@@ -177,7 +149,7 @@ export class FetchClient {
   async post<T>(
     url: string,
     data?: unknown,
-    options?: RequestInit,
+    options?: ExtendedRequestInit,
     dataKey: DataKey = API_RESPONSE_DATA_KEY,
   ): ResultAsync<T> {
     return this.request<T>(
@@ -194,7 +166,7 @@ export class FetchClient {
   async put<T>(
     url: string,
     data?: unknown,
-    options?: RequestInit,
+    options?: ExtendedRequestInit,
     dataKey: DataKey = API_RESPONSE_DATA_KEY,
   ): ResultAsync<T> {
     return this.request<T>(
@@ -211,7 +183,7 @@ export class FetchClient {
   async patch<T>(
     url: string,
     data?: unknown,
-    options?: RequestInit,
+    options?: ExtendedRequestInit,
     dataKey: DataKey = API_RESPONSE_DATA_KEY,
   ): ResultAsync<T> {
     return this.request<T>(
@@ -227,7 +199,7 @@ export class FetchClient {
 
   async delete<T>(
     url: string,
-    options?: RequestInit,
+    options?: ExtendedRequestInit,
     dataKey: DataKey = API_RESPONSE_DATA_KEY,
   ): ResultAsync<T> {
     return this.request<T>(url, { ...options, method: 'DELETE' }, dataKey);

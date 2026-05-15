@@ -7,6 +7,7 @@ type ApiExceptionOptions = {
   errors?: Record<string, string>[];
   data?: Record<string, unknown>;
   path?: string;
+  requestId?: string;
   stack?: string;
 };
 
@@ -16,14 +17,25 @@ export class ApiException extends Error {
   errors?: Record<string, string>[];
   data?: Record<string, unknown>;
   path?: string;
+  requestId?: string;
 
-  constructor({ status, message, code, errors, data, path, stack }: ApiExceptionOptions) {
+  constructor({
+    status,
+    message,
+    code,
+    errors,
+    data,
+    path,
+    requestId,
+    stack,
+  }: ApiExceptionOptions) {
     super(message);
     this.status = status;
     this.code = code;
     this.errors = errors;
     this.data = data;
     this.path = path;
+    this.requestId = requestId;
 
     if (stack) {
       this.stack = stack;
@@ -41,6 +53,7 @@ export class ApiException extends Error {
       errors: body.errors,
       data: body.data,
       path: body.path,
+      requestId: body.requestId,
     });
   }
 

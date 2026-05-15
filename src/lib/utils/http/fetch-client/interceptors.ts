@@ -1,18 +1,50 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import type { ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
 
+import {
+  generateRequestId,
+  getCookieHeaderForRequest,
+  isValidRequestId,
+  REQUEST_ID_HEADER,
+} from '../shared';
+
+function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
+  if (!headers) return false;
+  const lower = name.toLowerCase();
+  if (headers instanceof Headers) return headers.has(name);
+  if (Array.isArray(headers)) return headers.some(([k]) => k.toLowerCase() === lower);
+  return Object.keys(headers).some((k) => k.toLowerCase() === lower);
+}
+
 export async function applyRequestInterceptors(
   options: ExtendedRequestInit,
   tokenStore: TokenStore,
   defaultOptions: RequestInit,
 ): Promise<RequestInit> {
+  const mergedHeaders: Record<string, string> = {
+    ...(defaultOptions.headers as Record<string, string> | undefined),
+    ...(options.headers as Record<string, string> | undefined),
+  };
+
+  // Request-ID: send a fresh ID per call unless the caller supplied a valid one.
+  // Backend echoes whatever we send back to us when it matches its pattern.
+  const providedId =
+    mergedHeaders[REQUEST_ID_HEADER] ?? mergedHeaders[REQUEST_ID_HEADER.toLowerCase()];
+  if (!(providedId && isValidRequestId(providedId))) {
+    mergedHeaders[REQUEST_ID_HEADER] = generateRequestId();
+  }
+
+  // Cookie forwarding: a no-op in the browser (the cookie jar handles it);
+  // on the server we read next/headers and inject the Cookie header.
+  if (!hasHeader(mergedHeaders, 'cookie')) {
+    const cookieHeader = await getCookieHeaderForRequest();
+    if (cookieHeader) mergedHeaders.Cookie = cookieHeader;
+  }
+
   const mergedOptions: RequestInit = {
     ...defaultOptions,
     ...options,
-    headers: {
-      ...defaultOptions.headers,
-      ...options.headers,
-    },
+    headers: mergedHeaders,
   };
 
   if (options._skipAuthInterceptor) {
@@ -26,10 +58,7 @@ export async function applyRequestInterceptors(
   const token = directToken ?? (SAVE_AUTH_TOKENS ? await tokenStore.getAccessToken() : null);
 
   if (token) {
-    mergedOptions.headers = {
-      ...mergedOptions.headers,
-      Authorization: `Bearer ${token}`,
-    };
+    mergedHeaders.Authorization = `Bearer ${token}`;
   }
 
   return mergedOptions;
@@ -67,13 +96,4 @@ export async function applyResponseInterceptors(
     shouldReject: false,
     newToken,
   };
-}
-
-export function isBrowser(): boolean {
-  return typeof window !== 'undefined';
-}
-
-export function isEdgeRuntime(): boolean {
-  // @ts-expect-error - EdgeRuntime global is not in standard types
-  return typeof EdgeRuntime !== 'undefined';
 }
