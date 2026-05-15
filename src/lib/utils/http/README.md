@@ -1,18 +1,20 @@
 # HTTP Clients
 
-**TL;DR** — Two interchangeable HTTP clients (`fetchClient`, `axiosClient`) that talk to the NestJS-starter backend out of the box. Cookie-mode auth by default. SSR-safe. Errors come back as a typed `ApiException`, never thrown. Every request is correlated with the backend via `X-Request-Id`. Pass typed query objects via `{ params }` — no `URLSearchParams` boilerplate.
+**TL;DR** — Two interchangeable HTTP clients (`fetchClient`, `axiosClient`) that talk to the NestJS-starter backend out of the box. Cookie-mode auth by default. Two entry points so the same API works in client components AND Server Components without leaking `next/headers` into the client bundle. Errors come back as a typed `ApiException`, never thrown. Every request is correlated with the backend via `X-Request-Id`. Pass typed query objects via `{ params }` — no `URLSearchParams` boilerplate.
 
 ```
 src/lib/utils/http/
-├─ shared/          ← runtime detection, cookie injection, request-id, error parsing, params serialiser
-├─ fetch-client/    ← Fetch adapter on the shared foundation
-├─ axios-client/    ← Axios adapter on the shared foundation (same surface)
-├─ client-utils.ts  ← TokenRefreshManager + helpers
-├─ token-store.ts   ← secureStorageTokenStore (inert in cookie-mode)
-└─ index.ts         ← public surface: fetchClient, axiosClient, toSearchParams
+├─ shared/                  ← request-id, error parsing, params serialiser, runtime guards
+├─ fetch-client/            ← Fetch adapter on the shared foundation
+├─ axios-client/            ← Axios adapter on the shared foundation (same surface)
+├─ __bundle-sentinel__/     ← Build-time regression gate (do not delete)
+├─ client-utils.ts          ← TokenRefreshManager + helpers
+├─ token-store.ts           ← secureStorageTokenStore (inert in cookie-mode)
+├─ index.ts                 ← Universal entry: fetchClient, axiosClient, toSearchParams
+└─ server.ts                ← Server-only entry: same shape + next/headers cookie forwarding
 ```
 
-Feature code imports from `@/lib/utils/http` only. The `shared/` layer is internal — its concerns leak through `fetchClient` / `axiosClient`, not separate imports.
+Feature code imports from `@/lib/utils/http` (universal) or `@/lib/utils/http/server` (Server Components only). The `shared/` layer is internal — its concerns leak through `fetchClient` / `axiosClient`, not separate imports.
 
 ---
 
@@ -404,24 +406,73 @@ await axiosClient.get('/public/data', { _skipAuthInterceptor: true });
 
 `credentials: 'include'` (fetch) and `withCredentials: true` (axios) are **browser-only**. Node has no cookie jar, so without explicit forwarding the backend's HttpOnly cookies never reach it from a Server Component, Server Action, or Route Handler.
 
-Both clients handle this transparently. The shared `getCookieHeaderForRequest()` helper:
-
-1. Returns `undefined` in the browser (jar handles it).
-2. On the server, dynamically imports a `server-only` module that reads `next/headers` and serialises the incoming request's cookies into a `Cookie` header.
-
-The dynamic import keeps `next/headers` out of the client bundle entirely. **Feature code never imports `server-cookies` directly** — only the runtime-aware `cookie-injection` does, and only on the server.
+The HTTP layer ships **two entry points** to handle this without forcing every consumer to think about runtimes:
 
 ```ts
-// Same import, same call, both contexts:
+// Universal (any runtime, no SSR cookie forwarding)
 import { fetchClient } from '@/lib/utils/http';
 
-// In a client component:
-'use client';
-const r = await fetchClient.get('/auth/me'); // browser cookie jar
-
-// In a Server Component:
-const r = await fetchClient.get('/auth/me'); // next/headers → Cookie header
+// Server-only (Server Components, Server Actions, Route Handlers)
+import { fetchClient } from '@/lib/utils/http/server';
 ```
+
+| Entry point | Where to use | Cookies |
+|---|---|---|
+| `@/lib/utils/http` | Anywhere (`'use client'` files, Server Components, Edge, isomorphic utils) | Browser jar attaches automatically on client; no forwarding server-side |
+| `@/lib/utils/http/server` | Server Components, Server Actions, Route Handlers | Reads `next/headers` and forwards the incoming request's cookies on every call |
+
+### Why two entry points?
+
+Next.js refuses to compile a `'use client'` file whose import graph touches `next/headers`. Earlier designs that tried to hide the server-only code behind a runtime check (`if (isBrowser()) skip`) still failed because the bundler statically resolves the import graph — `'server-only'` correctly trips at build time. The split barrel encodes the boundary as part of the public API, which is the only design Next.js's module-resolution rules actually allow.
+
+Importing `@/lib/utils/http/server` from a `'use client'` file fails the build with a clear error from the `server-only` package. That's the design — it forces the call site to be explicit.
+
+### Practical patterns
+
+**Client components — use the universal entry:**
+
+```tsx
+'use client';
+
+import { fetchClient } from '@/lib/utils/http';
+
+export function Profile() {
+  // Browser cookie jar carries the session cookie automatically.
+  const result = await fetchClient.get<User>('/auth/me');
+  /* ... */
+}
+```
+
+**Server Components needing the user's cookies — use the server entry:**
+
+```tsx
+// app/[locale]/profile/page.tsx — no 'use client'
+import { fetchClient } from '@/lib/utils/http/server';
+
+export default async function ProfilePage() {
+  // next/headers reads the request cookies and forwards them.
+  const result = await fetchClient.get<User>('/auth/me');
+  if (result.isLeft()) return <SignedOut />;
+  return <Profile user={result.value} />;
+}
+```
+
+**Public endpoints from Server Components — use the universal entry:**
+
+```tsx
+// app/page.tsx — no auth required
+import { fetchClient } from '@/lib/utils/http';
+
+export default async function LandingPage() {
+  // Public endpoint — no cookies needed; universal entry avoids unnecessary work.
+  const stats = await fetchClient.get<Stats>('/public/stats');
+  /* ... */
+}
+```
+
+### Build-time regression gate
+
+`src/lib/utils/http/__bundle-sentinel__/` contains a `'use client'` file that imports every public symbol from `@/lib/utils/http`. It's referenced from `app/[locale]/layout.tsx`, so `yarn build` and CI fail loudly if anything that touches `next/headers` ever leaks into the universal entry's import graph. Don't delete it — it's the only thing standing between us and a silent re-occurrence of the original bug.
 
 ---
 

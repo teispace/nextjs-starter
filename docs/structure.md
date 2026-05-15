@@ -102,9 +102,7 @@ nextjs-starter/
 │   │   │   └── constants.ts                    # Levels + sensitive-key redaction paths
 │   │   ├── utils/
 │   │   │   ├── http/                           # HTTP clients (backend-compatible transport)
-│   │   │   │   ├── shared/                     # DRY foundation used by both clients
-│   │   │   │   │   ├── cookie-injection.ts     # Runtime-aware Cookie header (CSR vs RSC)
-│   │   │   │   │   ├── server-cookies.ts       # `server-only` next/headers reader
+│   │   │   │   ├── shared/                     # Universal foundation (client-bundle-safe)
 │   │   │   │   │   ├── request-id.ts           # X-Request-Id generation + extractors
 │   │   │   │   │   ├── response-parser.ts      # Single parseApiError for both clients
 │   │   │   │   │   ├── runtime.ts              # isBrowser / isServer
@@ -114,16 +112,19 @@ nextjs-starter/
 │   │   │   │   │   ├── axios-client.ts
 │   │   │   │   │   ├── client.ts
 │   │   │   │   │   ├── index.ts
-│   │   │   │   │   ├── interceptors.ts
+│   │   │   │   │   ├── interceptors.ts         # Accepts optional CookieResolver
 │   │   │   │   │   └── token-refresh.ts
 │   │   │   │   ├── fetch-client/               # Fetch adapter on the shared foundation
 │   │   │   │   │   ├── client.ts
 │   │   │   │   │   ├── fetch-client.ts
 │   │   │   │   │   ├── index.ts
-│   │   │   │   │   ├── interceptors.ts
+│   │   │   │   │   ├── interceptors.ts         # Accepts optional CookieResolver
 │   │   │   │   │   └── token-refresh.ts
+│   │   │   │   ├── __bundle-sentinel__/        # `'use client'` regression gate — do not delete
+│   │   │   │   │   └── client-bundle-sentinel.tsx
 │   │   │   │   ├── client-utils.ts             # TokenRefreshManager + helpers
-│   │   │   │   ├── index.ts                    # Public surface: fetchClient, axiosClient, toSearchParams
+│   │   │   │   ├── index.ts                    # Universal entry: fetchClient, axiosClient, toSearchParams
+│   │   │   │   ├── server.ts                   # Server-only entry: same shape + next/headers cookies
 │   │   │   │   ├── token-store.ts              # secureStorageTokenStore (inert in cookie-mode)
 │   │   │   │   └── README.md
 │   │   │   ├── ws/                             # WebSocket client (Socket.IO, /ws gateway)
