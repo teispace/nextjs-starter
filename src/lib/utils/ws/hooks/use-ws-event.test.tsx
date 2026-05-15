@@ -51,7 +51,8 @@ describe('useWsEvent', () => {
 
   it('triggers lazy connect() when status is idle', () => {
     getStatusMock.mockReturnValue('idle');
-    renderHook(() => useWsEvent('pong', () => {}), {
+    const noop = vi.fn();
+    renderHook(() => useWsEvent('pong', noop), {
       wrapper: ({ children }) => <TestProviders>{children}</TestProviders>,
     });
     expect(connectMock).toHaveBeenCalledTimes(1);
@@ -59,7 +60,8 @@ describe('useWsEvent', () => {
 
   it('does NOT call connect() when already connected', () => {
     getStatusMock.mockReturnValue('connected');
-    renderHook(() => useWsEvent('pong', () => {}), {
+    const noop = vi.fn();
+    renderHook(() => useWsEvent('pong', noop), {
       wrapper: ({ children }) => <TestProviders>{children}</TestProviders>,
     });
     expect(connectMock).not.toHaveBeenCalled();
