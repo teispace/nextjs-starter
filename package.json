@@ -57,6 +57,7 @@
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
     "server-only": "^0.0.1",
+    "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
