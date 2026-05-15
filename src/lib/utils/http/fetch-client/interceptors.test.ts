@@ -4,14 +4,6 @@ import type { TokenStore } from '@/types';
 
 import { REQUEST_ID_HEADER, REQUEST_ID_PATTERN } from '../shared';
 
-vi.mock('../shared', async () => {
-  const actual = await vi.importActual<typeof import('../shared')>('../shared');
-  return {
-    ...actual,
-    getCookieHeaderForRequest: vi.fn(),
-  };
-});
-
 const SAVE_AUTH_TOKENS = { value: false };
 vi.mock('@/lib/config', async () => {
   const actual = await vi.importActual<typeof import('@/lib/config')>('@/lib/config');
@@ -23,10 +15,7 @@ vi.mock('@/lib/config', async () => {
   };
 });
 
-// Imports must come AFTER mocks.
 const { applyRequestInterceptors, applyResponseInterceptors } = await import('./interceptors');
-const { getCookieHeaderForRequest } = await import('../shared');
-const getCookieMock = vi.mocked(getCookieHeaderForRequest);
 
 function makeTokenStore(overrides: Partial<TokenStore> = {}): TokenStore {
   return {
@@ -42,8 +31,6 @@ function makeTokenStore(overrides: Partial<TokenStore> = {}): TokenStore {
 describe('applyRequestInterceptors', () => {
   beforeEach(() => {
     SAVE_AUTH_TOKENS.value = false;
-    getCookieMock.mockReset();
-    getCookieMock.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -77,30 +64,38 @@ describe('applyRequestInterceptors', () => {
     expect(headers[REQUEST_ID_HEADER]).toMatch(REQUEST_ID_PATTERN);
   });
 
-  it('injects a Cookie header from getCookieHeaderForRequest when one is returned', async () => {
-    getCookieMock.mockResolvedValue('session=abc');
-    const out = await applyRequestInterceptors({}, makeTokenStore(), {});
-    const headers = out.headers as Record<string, string>;
-    expect(headers.Cookie).toBe('session=abc');
-  });
-
-  it('omits Cookie when getCookieHeaderForRequest returns undefined (browser branch)', async () => {
-    getCookieMock.mockResolvedValue(undefined);
+  it('does not inject Cookie header when no resolver is wired (universal client)', async () => {
     const out = await applyRequestInterceptors({}, makeTokenStore(), {});
     const headers = out.headers as Record<string, string>;
     expect(headers.Cookie).toBeUndefined();
   });
 
-  it('does not overwrite a caller-supplied Cookie header', async () => {
-    getCookieMock.mockResolvedValue('injected=value');
+  it('injects Cookie header from the resolver when one is wired (server client)', async () => {
+    const resolver = vi.fn().mockResolvedValue('session=abc');
+    const out = await applyRequestInterceptors({}, makeTokenStore(), {}, resolver);
+    const headers = out.headers as Record<string, string>;
+    expect(headers.Cookie).toBe('session=abc');
+    expect(resolver).toHaveBeenCalledOnce();
+  });
+
+  it('omits Cookie when the resolver returns undefined', async () => {
+    const resolver = vi.fn().mockResolvedValue(undefined);
+    const out = await applyRequestInterceptors({}, makeTokenStore(), {}, resolver);
+    const headers = out.headers as Record<string, string>;
+    expect(headers.Cookie).toBeUndefined();
+  });
+
+  it('does not overwrite a caller-supplied Cookie header even with a resolver wired', async () => {
+    const resolver = vi.fn().mockResolvedValue('injected=value');
     const out = await applyRequestInterceptors(
       { headers: { Cookie: 'caller=value' } },
       makeTokenStore(),
       {},
+      resolver,
     );
     const headers = out.headers as Record<string, string>;
     expect(headers.Cookie).toBe('caller=value');
-    expect(getCookieMock).not.toHaveBeenCalled();
+    expect(resolver).not.toHaveBeenCalled();
   });
 
   it('does not attach Authorization in cookie-mode (SAVE_AUTH_TOKENS=false)', async () => {

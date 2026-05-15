@@ -20,6 +20,13 @@ vi.mock('react-secure-storage', () => {
   };
 });
 
+// `server-only` throws at module load outside a Next.js server bundle —
+// the package relies on bundler-level redirect to a no-op file in server
+// environments. Vitest doesn't do that redirect, so we stub it as a no-op
+// to let unit tests reach the server-side modules. Production builds are
+// unaffected; Next.js still routes `server-only` to its real implementation.
+vi.mock('server-only', () => ({}));
+
 afterEach(() => {
   cleanup();
 });

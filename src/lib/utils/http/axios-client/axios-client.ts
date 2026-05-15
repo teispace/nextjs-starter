@@ -36,7 +36,7 @@ export class AxiosClient {
       paramsSerializer: (params) => toSearchParams(params as QueryParams).toString(),
     });
 
-    setupRequestInterceptor(this.axios, this.tokenStore);
+    setupRequestInterceptor(this.axios, this.tokenStore, options.cookieResolver);
     setupResponseInterceptor(
       this.axios,
       this.tokenStore,
