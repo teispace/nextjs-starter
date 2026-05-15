@@ -19,7 +19,11 @@ export const envSchema = z.object({
 
   NEXT_PUBLIC_API_URL: z
     .preprocess(emptyStringToUndefined, z.url().optional())
-    .describe('Base URL for the backing API. Empty means relative/proxied requests.'),
+    .describe(
+      'Bare origin of the backing API (e.g. `https://api.example.com`). ' +
+        'The `/api/v{n}` URI-version prefix is appended internally — do not include it here. ' +
+        'Empty means relative/proxied requests under the same origin.',
+    ),
 
   NEXT_PUBLIC_APP_URL: z
     .preprocess(emptyStringToUndefined, z.url().default('http://localhost:3000'))

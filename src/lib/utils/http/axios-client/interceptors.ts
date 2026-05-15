@@ -8,30 +8,61 @@ import type {
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import type { TokenStore } from '@/types';
 
+import {
+  generateRequestId,
+  getCookieHeaderForRequest,
+  isValidRequestId,
+  REQUEST_ID_HEADER,
+} from '../shared';
+
+function readHeaderInsensitive(
+  headers: InternalAxiosRequestConfig['headers'],
+  name: string,
+): string | undefined {
+  if (!headers) return undefined;
+  const lower = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === lower && typeof value === 'string') return value;
+  }
+  return undefined;
+}
+
 export function setupRequestInterceptor(
   axiosInstance: AxiosInstance,
   tokenStore: TokenStore,
 ): void {
   axiosInstance.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
+      // Request-ID: stamp every outgoing request unless the caller supplied
+      // a valid one. Matches the backend's REQUEST_ID_PATTERN so the value
+      // is echoed back rather than rewritten server-side.
+      const providedId = readHeaderInsensitive(config.headers, REQUEST_ID_HEADER);
+      if (!(providedId && isValidRequestId(providedId))) {
+        config.headers.set(REQUEST_ID_HEADER, generateRequestId());
+      }
+
+      // Cookie forwarding for server runtimes (RSC / Server Actions / Route
+      // Handlers). `withCredentials: true` is browser-only — Node has no
+      // cookie jar and silently drops it.
+      if (!readHeaderInsensitive(config.headers, 'cookie')) {
+        const cookieHeader = await getCookieHeaderForRequest();
+        if (cookieHeader) config.headers.set('Cookie', cookieHeader);
+      }
+
       if (config._skipAuthInterceptor) {
         return config;
       }
 
       if (SAVE_AUTH_TOKENS) {
         const token = await tokenStore.getAccessToken();
-
         if (token) {
-          config.headers = config.headers ?? {};
-          config.headers.Authorization = `Bearer ${token}`;
+          config.headers.set('Authorization', `Bearer ${token}`);
         }
       }
 
       return config;
     },
-    (error) => {
-      return Promise.reject(error);
-    },
+    (error) => Promise.reject(error),
   );
 }
 
@@ -44,10 +75,11 @@ export function setupResponseInterceptor(
   axiosInstance.interceptors.response.use(
     (res) => res,
     async (error: AxiosError) => {
-      const originalRequest = error.config as AxiosRequestConfig;
+      const originalRequest = error.config as AxiosRequestConfig | undefined;
 
       if (
         error.response?.status === 401 &&
+        originalRequest &&
         !originalRequest._retry &&
         !originalRequest._skipAuthInterceptor
       ) {
@@ -62,7 +94,7 @@ export function setupResponseInterceptor(
         }
 
         originalRequest.headers = originalRequest.headers ?? {};
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+        (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${token}`;
 
         return axiosInstance(originalRequest);
       }
