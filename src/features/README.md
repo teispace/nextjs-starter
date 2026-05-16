@@ -1,50 +1,45 @@
 # Feature-Based Architecture
 
-This project follows a **Domain-Driven Design (DDD)** inspired feature-based architecture. This structure helps in scaling the application by keeping related code together, making it easier to maintain and test.
+This project follows a **Domain-Driven Design (DDD)** inspired feature-based architecture. Group code by feature, not by technical type — so everything an "auth" or "users" feature needs lives together and ships together.
 
 ## 📂 Structure
 
-Each feature is a self-contained module located in `src/features/`.
+Each feature is a self-contained module under `src/features/`. The shipped reference is `src/features/counter/` — copy its layout when you add a new feature.
 
 ```
 src/features/
-├── auth/                   # Feature name (e.g., auth, users, projects)
-│   ├── components/         # UI components specific to this feature
-│   │   ├── login-form.tsx
-│   │   └── register-form.tsx
-│   ├── hooks/              # React hooks specific to this feature
-│   │   └── use-auth.ts
-│   ├── services/           # API services specific to this feature (optional)
-│   │   └── auth.service.ts
-│   ├── store/              # Redux slices specific to this feature (optional)
-│   │   └── auth.slice.ts
-│   ├── types.ts            # TypeScript types/interfaces for this feature
-│   └── index.ts            # Public API (exports) of the feature
-└── ...
+└── counter/                  # Feature name (kebab-case folder)
+    ├── components/           # UI components specific to this feature
+    │   ├── Counter.tsx
+    │   └── Counter.test.tsx  # Co-located test
+    ├── hooks/                # React hooks specific to this feature
+    │   └── useCounter.ts
+    ├── store/                # Redux slice/selectors/persist (optional)
+    │   ├── counter.slice.ts
+    │   ├── counter.selectors.ts
+    │   ├── persist.ts        # Per-feature redux-persist config
+    │   └── index.ts          # Barrel re-export for `@/store/rootReducer`
+    ├── types/                # Feature-local TypeScript types
+    │   └── counter.types.ts
+    └── index.ts              # Public API — only what's safe to import from outside
 ```
+
+Optional subfolders you can add when the feature needs them: `services/` (API/SDK wrappers), `providers/` (feature-scoped React providers), `hoc/`. **Skip the folder if it has no files** — empty placeholders rot fast.
 
 ## 🚀 Creating a New Feature
 
-1.  **Create the folder structure**:
-    Create a new folder in `src/features/` with the name of your feature (e.g., `products`).
+1.  **Create the folder** under `src/features/` (e.g., `products`).
+2.  **Components** go in `src/features/products/components/`. Co-locate tests as `*.test.tsx`.
+3.  **Hooks** go in `src/features/products/hooks/`.
+4.  **Types** go in `src/features/products/types/<name>.types.ts`.
+5.  **Redux** (if the feature owns state) goes in `src/features/products/store/`. Wire the reducer into `src/store/rootReducer.ts`. Persist via the feature's own `persist.ts` so persistence config travels with the feature.
+6.  **Public API** — re-export from `src/features/products/index.ts`. Only export what other features / the `app/` layer needs.
 
-2.  **Add Components**:
-    Place your feature-specific components in `src/features/products/components/`.
-
-3.  **Add Hooks**:
-    Place your feature-specific hooks in `src/features/products/hooks/`.
-
-4.  **Define Types**:
-    Define your interfaces and types in `src/features/products/types.ts`.
-
-5.  **Export Public API**:
-    Use `src/features/products/index.ts` to export only what should be accessible from outside the feature.
-
-    ```typescript
+    ```ts
     // src/features/products/index.ts
     export * from './components/product-list';
     export * from './hooks/use-products';
-    export * from './types';
+    export * from './types/products.types';
     ```
 
 ## 🤝 Rules of Engagement
@@ -61,22 +56,22 @@ src/features/
 4.  **App Layer**:
     The `src/app` directory (Next.js App Router) should primarily compose features together. It should contain minimal business logic.
 
-## 📝 Example: Auth Feature
+## 📝 Sketch: an auth feature
 
-**`src/features/auth/types.ts`**
+**`src/features/auth/types/auth.types.ts`**
 
-```typescript
+```ts
 export interface User {
   id: string;
   email: string;
 }
 ```
 
-**`src/features/auth/hooks/use-auth.ts`**
+**`src/features/auth/hooks/useAuth.ts`**
 
-```typescript
+```ts
 import { useState } from 'react';
-import { User } from '../types';
+import type { User } from '../types/auth.types';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -85,28 +80,28 @@ export function useAuth() {
 }
 ```
 
-**`src/features/auth/components/login-form.tsx`**
+**`src/features/auth/components/LoginForm.tsx`**
 
-```typescript
-import { useAuth } from '../hooks/use-auth';
+```tsx
+import { useAuth } from '../hooks/useAuth';
 
 export function LoginForm() {
-  const { login } = useAuth();
-  return <form>...</form>;
+  const { user } = useAuth();
+  return <form>{/* ... */}</form>;
 }
 ```
 
 **`src/features/auth/index.ts`**
 
-```typescript
-export * from './components/login-form';
-export * from './hooks/use-auth';
-export * from './types';
+```ts
+export * from './components/LoginForm';
+export * from './hooks/useAuth';
+export type { User } from './types/auth.types';
 ```
 
 **Usage in `src/app/[locale]/login/page.tsx`**
 
-```typescript
+```tsx
 import { LoginForm } from '@/features/auth';
 
 export default function LoginPage() {
@@ -114,25 +109,4 @@ export default function LoginPage() {
 }
 ```
 
-## Example: Counter Feature
-
-This is an example layout for the `counter` feature showing feature-local store artifacts.
-
-```
-src/features/
-└── counter/
-    ├── components/
-    │   └── Counter.tsx
-    ├── hooks/
-    │   └── useCounter.ts
-    ├── services/
-    │   └── counter.api.ts
-    ├── store/
-    │   ├── counter.slice.ts
-    │   ├── persist.ts
-    │   └── counter.selectors.ts
-    └── types/
-        └── counter.types.ts
-```
-
-Import feature exports from the feature's public API (preferred) or import specific internals when necessary.
+For a working example with state + persistence, see `src/features/counter/`.

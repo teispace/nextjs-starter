@@ -30,10 +30,10 @@ nextjs-starter/
 │  ├─ components/               # Shared UI components and barrels
 │  ├─ features/                 # Feature-driven modules (counter example)
 │  ├─ i18n/                     # Internationalization (translations + routing)
-│  ├─ lib/                      # Config, env, logger, errors, http clients, utils, validations
+│  ├─ lib/                      # Config, env, logger, errors, http + ws clients, utils, validations
 │  ├─ providers/                # React providers (root/store/theme)
-│  ├─ services/                 # API & storage services
-│  ├─ store/                    # Redux store, persistor, typed hooks, SSR-safe storage
+│  ├─ services/storage/         # react-secure-storage wrapper
+│  ├─ store/                    # Redux store, persistor, typed hooks, slices/, SSR-safe storage
 │  ├─ styles/                   # Global CSS / Tailwind
 │  ├─ types/                    # Global TypeScript types
 │  └─ proxy.ts                  # Next 16 edge proxy (replaces middleware.ts)
@@ -79,14 +79,17 @@ cp .env.example .env
 
 | Variable               | Description                                                                        | Default                 |
 | :--------------------- | :--------------------------------------------------------------------------------- | :---------------------- |
+| `NODE_ENV`             | `development` \| `test` \| `production`. Drives the logger transport, build output, and a few feature flags. | `development`           |
 | `NEXT_PUBLIC_API_URL`  | Bare origin of the backing API (e.g. `https://api.example.com`). The `/api/v{n}` URI-version prefix is appended internally — do not include it here. Empty → relative/proxied requests. | `(empty)`               |
 | `NEXT_PUBLIC_APP_URL`  | Public URL this app is served from (used for OG/canonical URLs).                   | `http://localhost:3000` |
 | `DEFAULT_TIMEZONE`     | IANA time zone for server-rendered date formatting. Keeps SSR deterministic.       | `UTC`                   |
 | `DEFAULT_LOCALE`       | Fallback locale when a request locale cannot be resolved.                          | `en`                    |
-| `PORT`                 | Port to run the server on                                                          | `3000`                  |
-| `CONTAINER_NAME`       | Name of the Docker container                                                       | `next-app`              |
-| `IMAGE_NAME`           | Name of the Docker image                                                           | `nextjs-starter`        |
-| `IMAGE_TAG`            | Tag for the Docker image                                                           | `latest`                |
+| `PORT`                 | Port to run the server on.                                                         | `3000`                  |
+| `CONTAINER_NAME`       | Name of the Docker container.                                                      | `next-app`              |
+| `IMAGE_NAME`           | Name of the Docker image.                                                          | `nextjs-starter`        |
+| `IMAGE_TAG`            | Tag for the Docker image.                                                          | `latest`                |
+
+> Adding a new env var? Update three places: `src/lib/env/schema.ts` (zod schema), `src/lib/env/index.ts` (`readRawEnv`), and `.env.example`. The pre-commit hook keeps `.env.example` in sync via `yarn env:sync --check`.
 
 ### Internationalization
 

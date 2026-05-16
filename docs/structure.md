@@ -9,13 +9,13 @@ nextjs-starter/
 ├── .github/                                    # GitHub configuration
 │   ├── ISSUE_TEMPLATE/                         # Issue templates
 │   │   ├── bug_report.md
-│   │   ├── config.yml
 │   │   ├── documentation.md
 │   │   ├── feature_request.md
 │   │   └── question.md
 │   ├── workflows/                              # GitHub Actions workflows
-│   │   └── ci.yml                              # CI/CD pipeline (biome ci + type-check + build)
-│   ├── dependabot.yml                          # Dependabot configuration
+│   │   ├── ci.yml                              # ci:check + type-check + check:deprecated + test + build
+│   │   └── dependabot-auto-merge.yml           # Auto-merge green patch/minor Dependabot PRs
+│   ├── dependabot.yml                          # Dependabot configuration (grouped minor+patch)
 │   └── PULL_REQUEST_TEMPLATE.md                # Pull request template
 │
 ├── .husky/                                     # Git hooks
@@ -59,7 +59,9 @@ nextjs-starter/
 │   │
 │   ├── features/                               # Feature-based modules
 │   │   ├── counter/                            # Counter feature example
-│   │   │   ├── components/Counter.tsx
+│   │   │   ├── components/
+│   │   │   │   ├── Counter.tsx
+│   │   │   │   └── Counter.test.tsx
 │   │   │   ├── hooks/useCounter.ts
 │   │   │   ├── store/                          # Redux slice, selectors, persist config
 │   │   │   │   ├── counter.selectors.ts
@@ -104,25 +106,35 @@ nextjs-starter/
 │   │   │   ├── http/                           # HTTP clients (backend-compatible transport)
 │   │   │   │   ├── shared/                     # Universal foundation (client-bundle-safe)
 │   │   │   │   │   ├── request-id.ts           # X-Request-Id generation + extractors
+│   │   │   │   │   ├── request-id.test.ts
 │   │   │   │   │   ├── response-parser.ts      # Single parseApiError for both clients
+│   │   │   │   │   ├── response-parser.test.ts
 │   │   │   │   │   ├── runtime.ts              # isBrowser / isServer
+│   │   │   │   │   ├── runtime.test.ts
 │   │   │   │   │   ├── search-params.ts        # Typed query object → URLSearchParams
+│   │   │   │   │   ├── search-params.test.ts
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── axios-client/               # Axios adapter on the shared foundation
 │   │   │   │   │   ├── axios-client.ts
-│   │   │   │   │   ├── client.ts
+│   │   │   │   │   ├── axios-client.test.ts
+│   │   │   │   │   ├── client.ts               # Default singleton (universal entry)
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── interceptors.ts         # Accepts optional CookieResolver
-│   │   │   │   │   └── token-refresh.ts
+│   │   │   │   │   ├── token-refresh.ts
+│   │   │   │   │   └── token-refresh.test.ts
 │   │   │   │   ├── fetch-client/               # Fetch adapter on the shared foundation
-│   │   │   │   │   ├── client.ts
+│   │   │   │   │   ├── client.ts               # Default singleton (universal entry)
 │   │   │   │   │   ├── fetch-client.ts
+│   │   │   │   │   ├── fetch-client.test.ts
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── interceptors.ts         # Accepts optional CookieResolver
-│   │   │   │   │   └── token-refresh.ts
+│   │   │   │   │   ├── interceptors.test.ts
+│   │   │   │   │   ├── token-refresh.ts
+│   │   │   │   │   └── token-refresh.test.ts
 │   │   │   │   ├── __bundle-sentinel__/        # `'use client'` regression gate — do not delete
 │   │   │   │   │   └── client-bundle-sentinel.tsx
 │   │   │   │   ├── client-utils.ts             # TokenRefreshManager + helpers
+│   │   │   │   ├── client-utils.test.ts
 │   │   │   │   ├── index.ts                    # Universal entry: fetchClient, axiosClient, toSearchParams
 │   │   │   │   ├── server.ts                   # Server-only entry: same shape + next/headers cookies
 │   │   │   │   ├── token-store.ts              # secureStorageTokenStore (inert in cookie-mode)
@@ -135,24 +147,32 @@ nextjs-starter/
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── shared/                     # Internal: runtime, auth-carrier, URL composer
 │   │   │   │   │   ├── runtime.ts              # isBrowser + WsSsrError (hard SSR guard)
+│   │   │   │   │   ├── runtime.test.ts
 │   │   │   │   │   ├── auth-carrier.ts         # buildHandshakeAuth (cookie vs bearer)
 │   │   │   │   │   ├── ws-url.ts               # getWsUrl (origin + namespace)
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── client/                     # WsClient class + default singleton
 │   │   │   │   │   ├── ws-client.ts            # Lifecycle, heartbeat, force-disconnect
+│   │   │   │   │   ├── ws-client.test.ts
 │   │   │   │   │   ├── client.ts               # `wsClient` lazy proxy singleton
 │   │   │   │   │   ├── lifecycle-emitter.ts    # Internal typed event emitter
 │   │   │   │   │   ├── types.ts                # WsStatus, WsClientOptions, WsConnectOptions
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── redux/                      # Bridge + selectors (slice lives in store/slices)
 │   │   │   │   │   ├── bridge.ts               # attachWsBridge — only path that dispatches to ws slice
+│   │   │   │   │   ├── bridge.test.ts
 │   │   │   │   │   ├── selectors.ts            # selectWsStatus, selectWsIsConnected, ...
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── hooks/                      # React hooks
 │   │   │   │   │   ├── use-ws-status.ts        # Read connection state from Redux
+│   │   │   │   │   ├── use-ws-status.test.tsx
 │   │   │   │   │   ├── use-ws-event.ts         # Subscribe with lazy connect on first mount
+│   │   │   │   │   ├── use-ws-event.test.tsx
 │   │   │   │   │   ├── use-ws-emit.ts          # Typed emit accessor
+│   │   │   │   │   ├── use-ws-emit.test.tsx
 │   │   │   │   │   └── index.ts
+│   │   │   │   ├── __test-utils__/             # FakeSocket helper used by WS unit tests
+│   │   │   │   │   └── fake-socket.ts
 │   │   │   │   ├── constants.ts                # WS_NAMESPACE, WS_HEARTBEAT_INTERVAL_MS, etc.
 │   │   │   │   ├── index.ts                    # Public surface
 │   │   │   │   └── README.md
@@ -167,8 +187,6 @@ nextjs-starter/
 │   │   └── index.ts
 │   │
 │   ├── services/                               # Service layer
-│   │   ├── api/
-│   │   │   └── index.ts
 │   │   └── storage/                            # Storage services
 │   │       ├── index.ts
 │   │       └── secure-storage.service.ts       # react-secure-storage wrapper
@@ -179,7 +197,8 @@ nextjs-starter/
 │   │   ├── persistor.ts                        # Redux-persist setup
 │   │   ├── rootReducer.ts                      # Root reducer (ws slice NOT persisted)
 │   │   ├── slices/
-│   │   │   └── ws.slice.ts                     # WebSocket connection state (ephemeral)
+│   │   │   ├── ws.slice.ts                     # WebSocket connection state (ephemeral)
+│   │   │   └── ws.slice.test.ts
 │   │   └── storage.ts                          # SSR-safe storage (noop on server, localStorage on client)
 │   │
 │   ├── styles/
@@ -203,6 +222,10 @@ nextjs-starter/
 ├── scripts/
 │   ├── sync-env.ts                             # Keeps .env.example in sync with .env
 │   └── check-deprecated.ts                     # Fails if any code uses an @deprecated API
+│
+├── test/                                       # Vitest setup + RTL helpers
+│   ├── setup.ts                                # Global mocks (react-secure-storage, server-only)
+│   └── test-utils.tsx                          # renderWithProviders + TestProviders
 │
 ├── .czrc                                       # Commitizen configuration
 ├── .dockerignore                               # Docker ignore patterns
@@ -278,7 +301,7 @@ Edge proxy for request interception (Next 16 replacement for `middleware.ts`).
 
 ### `src/services/`
 
-Service layer for API calls and storage operations, providing abstraction over data fetching and persistence. Storage is wrapped around `react-secure-storage`.
+Service layer for storage abstractions. Currently a thin wrapper around `react-secure-storage` (`storage/secure-storage.service.ts`). HTTP and WebSocket transports live under `src/lib/utils/`, not here — `services/` is for code that wraps an external SDK or persistence layer.
 
 ### `src/store/`
 
@@ -305,4 +328,6 @@ Centralized TypeScript type definitions including common types, utility types (E
 - Feature development guide: `src/features/README.md`
 - Internationalization setup: `src/i18n/README.md`
 - HTTP client documentation: `src/lib/utils/http/README.md`
+- WebSocket client documentation: `src/lib/utils/ws/README.md`
 - Contributing guidelines: `CONTRIBUTING.md`
+- Changelog: `CHANGELOG.md`

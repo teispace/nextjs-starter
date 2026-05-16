@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **HTTP layer overhaul (`src/lib/utils/http/`)**: dual `fetchClient` / `axiosClient` on a shared foundation (`shared/` — request-id, response-parser, runtime, search-params). Cookie-mode auth by default with a one-flag flip to bearer; automatic `X-Request-Id` correlation; backend-compatible response envelope; offset and cursor pagination types; typed `{ params }` query objects (no manual `URLSearchParams`); single `parseApiError` pipeline; `createFetchClient` / `createAxiosClient` factories for custom upstreams. See `src/lib/utils/http/README.md`.
+- **HTTP universal/server entry split**: `@/lib/utils/http` is universal (browser/RSC-safe), `@/lib/utils/http/server` is server-only and forwards cookies via `next/headers`. The split keeps `next/headers` out of the client bundle and uses `server-only` to fail the build if violated. A `'use client'` regression sentinel (`__bundle-sentinel__/`) is mounted from `app/[locale]/layout.tsx` to catch leaks at build time.
+- **WebSocket layer (`src/lib/utils/ws/`)**: typed Socket.IO client matching the NestJS-starter `/ws` gateway. Cookie/bearer auth, application-level heartbeat, reconnection with `auth:force:disconnect` policy enforcement, anonymous-mode opt-in, hard SSR boundary (`WsSsrError`). React hooks (`useWsStatus`, `useWsEvent`, `useWsEmit`) with lazy connect on first subscribe. Connection state mirrored into a non-persisted Redux slice (`src/store/slices/ws.slice.ts`) via `attachWsBridge`. See `src/lib/utils/ws/README.md`.
+- **Co-located unit tests** for the HTTP and WS layers — `*.test.ts(x)` next to the source. `test/setup.ts` stubs `react-secure-storage` (canvas-free) and `server-only` (no-op) so unit tests can reach server-side modules.
+
+### Removed
+
+- Empty scaffolding directories (`src/features/auth/`, `src/features/dashboard/`, `src/app/[locale]/auth/`, `src/app/[locale]/dashboard/`, `src/app/auth/`, `src/services/api/`). They had no real code and were drifting away from what the docs described.
+
 ### Changed
 
 - **Tooling**: Replaced ESLint + Prettier + `prettier-plugin-tailwindcss` with [Biome](https://biomejs.dev) (`@biomejs/biome`). One tool now handles linting, formatting, and import sorting. Dropped `eslint.config.mjs`, `.prettierrc`, `.prettierignore`; added `biome.json`. CI runs a single `biome ci` step. Existing code style preserved (single quotes, semicolons, 100-col, trailing commas, LF).
