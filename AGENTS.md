@@ -12,13 +12,14 @@ Production-ready App Router template. Next 16, React 19, TypeScript, Tailwind v4
 
 - **Linter/formatter**: Biome only. No ESLint, no Prettier. Config: `biome.json`. Run `yarn lint` / `yarn lint:fix` / `yarn format`. CI uses `yarn ci:check` (`biome ci`).
 - **Tests**: Vitest + React Testing Library + jsdom. Co-locate as `*.test.tsx` next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when the component needs Redux/i18n. Run with `yarn test` (or `yarn test:watch` / `yarn test:coverage`).
-- **Env vars**: Always import from `@/lib/env` (zod-validated at module load), never `process.env.NEXT_PUBLIC_*` directly. Add new vars to the schema in `src/lib/env.ts` AND to `.env.example`.
+- **Env vars**: Always import from `@/lib/env` (zod-validated at module load), never `process.env.NEXT_PUBLIC_*` directly. Add new vars to the schema in `src/lib/env/schema.ts`, the reader in `src/lib/env/index.ts`, AND `.env.example`.
 - **Logging**: Import `logger` from `@/lib/logger` (pino) — never `console.*`. Attach context via `logger.child({ requestId, userId })`. Sensitive keys (token, password, authorization) are auto-redacted.
 - **Routing interception**: `src/proxy.ts` (Next 16 replacement for `middleware.ts`). Do NOT create `middleware.ts`.
-- **i18n**: `next-intl`. All user-facing routes live under `src/app/[locale]/`. Locale config in `src/i18n/routing.ts`; request config in `src/i18n/request.ts`.
-- **State**: Redux Toolkit + redux-persist. Store assembled in `src/store/`. Use typed hooks from `src/store/hooks.ts`, never raw `useDispatch`/`useSelector`.
+- **i18n**: `next-intl`. All user-facing routes live under `src/app/[locale]/`. Locale config in `src/i18n/routing.ts`; request config in `src/i18n/request.ts`. Locale types in `src/types/i18n.ts`.
+- **State**: Redux Toolkit + redux-persist. Store assembled in `src/store/`. Use typed hooks from `src/store/hooks.ts`, never raw `useDispatch`/`useSelector`. The `ws` slice (`src/store/slices/ws.slice.ts`) is ephemeral — not persisted.
 - **Theme**: `@teispace/next-themes` (drop-in replacement for the unmaintained `next-themes`). Provider in `src/providers/CustomThemeProvider.tsx`.
-- **HTTP**: axios wrapper in `src/services/api/`. Errors via `src/lib/errors/`.
+- **HTTP**: Dual clients (`fetchClient`, `axiosClient`) in `src/lib/utils/http/`. Universal entry is `@/lib/utils/http`; Server Components needing cookie forwarding import from `@/lib/utils/http/server`. Errors as typed `ApiException` from `src/lib/errors/` — clients never throw, returns land in `Either<ApiException, T>`. See `src/lib/utils/http/README.md`.
+- **WebSocket**: Typed Socket.IO client in `src/lib/utils/ws/`. Import from `@/lib/utils/ws` only — `shared/`, `client/internals`, and `redux/bridge` are private. Browser-only; opening a socket from a Server Component throws. See `src/lib/utils/ws/README.md`.
 - **Secure storage**: `react-secure-storage` wrapped in `src/services/storage/secure-storage.service.ts`. Never call the library directly.
 - **Import alias**: `@/*` → `src/*`.
 
@@ -26,18 +27,27 @@ Production-ready App Router template. Next 16, React 19, TypeScript, Tailwind v4
 
 ```
 src/
-  app/              App Router (root-level pages: robots.ts, sitemap.ts, global-error.tsx)
-  app/[locale]/     Localized routes
+  app/              App Router (root-level pages: robots.ts, sitemap.ts, global-error.tsx, not-found.tsx)
+  app/[locale]/     Localized routes (layout, page, error, not-found)
   components/       Shared, cross-feature components
   features/         Feature folders (components/, hooks/, store/, types/) — see features/README.md
-  i18n/             next-intl config
-  lib/              config, enums, errors, utils, validations
-  providers/        Root + nested React providers
-  proxy.ts          Edge proxy (Next 16 style; was middleware.ts)
-  services/         api, storage
-  store/            Redux store, persistor, hooks, rootReducer
+  i18n/             next-intl config (routing, request, navigation, translations/)
+  lib/
+    config/         API base, app paths, locales, constants, SEO
+    enums/          Cross-cutting enums (Environment, ...)
+    env/            Zod-validated env schema + cached loader
+    errors/         ApiException + catch helpers
+    logger/         Pino logger + redaction constants
+    utils/
+      http/         Dual HTTP clients on a shared foundation (universal + server entries)
+      ws/           Typed Socket.IO client + hooks + Redux bridge
+    validations/    Reusable zod schemas
+  providers/        RootProvider (the only advertised mount point) + Store/Theme providers
+  proxy.ts          Edge proxy (Next 16 replacement for middleware.ts)
+  services/storage/ react-secure-storage wrapper
+  store/            Redux store, persistor, hooks, rootReducer, slices/, SSR-safe storage
   styles/           Global CSS
-  types/            Shared TS types (common/, utility/)
+  types/            Shared TS types (common/, utility/, i18n)
 ```
 
 ## Conventions

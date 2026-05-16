@@ -8,13 +8,14 @@ Quick reference for using **next-intl** in this project.
 
 ```
 src/i18n/
-├── types.ts            # TypeScript types (SupportedLocale, AppLocale)
-├── routing.ts          # Route config (locales, defaultLocale)
-├── request.ts          # Server-side config (loads translations)
+├── routing.ts          # Route config (locales, defaultLocale, localePrefix)
+├── request.ts          # Server-side config (loads translations, reads timeZone from env)
 ├── navigation.ts       # Locale-aware Link, redirect, useRouter
 └── translations/
     └── en.json         # Translation files
 ```
+
+Locale types (`SupportedLocale`, `AppLocale`, `LocaleDirection`) live in `src/types/i18n.ts` alongside the `next-intl` `AppConfig` module augmentation. The list of locales and their metadata lives in `src/lib/config/app-locales.ts` — `routing.ts` reads from there.
 
 ---
 
@@ -73,8 +74,6 @@ export default function ClientComponent() {
 
 ---
 
----
-
 ## 🎯 Static Rendering (SSG)
 
 **Required in EVERY page/layout:**
@@ -130,8 +129,6 @@ function Nav() {
 
 ---
 
----
-
 ## 🌐 Adding New Locale
 
 **1. Create translation file:**
@@ -143,7 +140,7 @@ cp src/i18n/translations/en.json src/i18n/translations/es.json
 **2. Update types:**
 
 ```ts
-// src/i18n/types.ts
+// src/types/i18n.ts
 export type SupportedLocale = 'en' | 'es';
 ```
 
@@ -169,8 +166,6 @@ locales: ['en', 'es'];
 ```bash
 yarn build
 ```
-
----
 
 ---
 
@@ -226,14 +221,13 @@ export async function generateMetadata({ params }) {
 
 ### Server Actions
 
-````tsx
+```tsx
 export async function submitForm(formData: FormData) {
   'use server';
   const t = await getTranslations('Forms');
   console.log(t('submitting'));
 }
-
----
+```
 
 ---
 
@@ -262,4 +256,4 @@ setRequestLocale(locale as 'en');  // Cast it
 
 ---
 
-**Version:** next-intl 4.5.3 | Next.js 16.0.3
+**Versions are tracked in `package.json` — this guide targets `next-intl ^4.12` on Next 16.**

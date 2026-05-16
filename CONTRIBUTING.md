@@ -35,25 +35,26 @@ yarn install
 ### 3. Create a Feature Branch
 
 ```bash
-# Update your local main/develop branch
-git checkout develop
-git pull upstream develop
+# Sync your local main with upstream
+git checkout main
+git pull upstream main
 
-# Create a new feature branch
+# Create a new branch off main
 git checkout -b feat/your-feature-name
 ```
 
 ## 🌳 Branching Strategy
 
-We follow a Git Flow-inspired branching model:
+Trunk-based: `main` is the only long-lived branch. Short-lived feature/fix branches are cut from `main` and merged back via PR.
 
-- **`main`** – Production-ready code
-- **`develop`** – Integration branch for features
-- **`feat/*`** – New features
-- **`fix/*`** – Bug fixes
-- **`docs/*`** – Documentation updates
-- **`chore/*`** – Maintenance tasks
-- **`refactor/*`** – Code refactoring
+- **`main`** – production-ready trunk; all PRs target this
+- **`feat/*`** – new features
+- **`fix/*`** – bug fixes
+- **`docs/*`** – documentation-only updates
+- **`chore/*`** – maintenance / dependency work
+- **`refactor/*`** – non-functional restructuring
+
+CI runs on every push and PR to `main`.
 
 ## 📝 Commit Convention
 
@@ -112,14 +113,22 @@ On every commit, the following checks run automatically via Husky hooks:
 
 #### Pre-commit Hook
 
-- **Lint-staged**: Runs `biome check --write` on staged files only (single command lints, formats, and sorts imports)
-- **Pre-commit**: Syncs `.env.example`, validates staged files with lint-staged, then type-checks any staged TypeScript
-- **Pre-push**: Runs full validation (`yarn validate`: `biome ci` + type-check + build) before pushing
-- Auto-fixes formatting, linting, and import-order issues where possible
+- Verifies `.env.example` is in sync with `.env` (`yarn env:sync --check`)
+- Runs `lint-staged`, which executes `biome check --write` on staged files (single command lints, formats, sorts imports)
+- If any TypeScript files are staged, runs `yarn type-check` (`tsc --noEmit`) on the whole project
+
+#### Pre-push Hook
+
+- `yarn ci:check` (the same `biome ci` CI runs)
+- `yarn type-check`
+- `yarn check:deprecated`
+- `yarn test` (Vitest run)
+
+The production build is left to CI — pre-push deliberately skips it to keep the wait short.
 
 #### Commit-msg Hook
 
-- **Commitlint**: Validates commit message format
+- **Commitlint**: validates commit message format
 - Ensures commits follow Conventional Commits specification
 
 ### Manual Checks
@@ -157,17 +166,21 @@ yarn validate
 
 ## 🧪 Testing
 
-Currently, the test framework is not configured. When adding tests:
+Vitest + React Testing Library + jsdom are wired up. Co-locate tests as `*.test.ts(x)` next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when your component needs Redux/i18n.
 
 ```bash
-yarn test
+yarn test            # one-shot run (also what CI executes)
+yarn test:watch      # watch mode for local dev
+yarn test:coverage   # v8 coverage report
 ```
+
+Global setup (jsdom polyfills, `react-secure-storage` and `server-only` stubs) lives in `test/setup.ts`.
 
 ## 🔧 Development Workflow
 
 ### Step-by-Step Guide
 
-1. **Create a branch** from `develop`:
+1. **Create a branch** from `main`:
 
    ```bash
    git checkout -b feat/amazing-feature
@@ -221,12 +234,12 @@ When you run `git commit` or `yarn commit`:
 ### Before Submitting
 
 - [ ] All commits follow Conventional Commits format
-- [ ] Code passes all linting checks (`yarn lint`)
-- [ ] Code is properly formatted (`yarn format:check`)
-- [ ] TypeScript types are correct (`yarn type-check`)
-- [ ] Build succeeds (`yarn build`)
-- [ ] No console.log or debugging code left behind
-- [ ] Self-review of your own code
+- [ ] `yarn ci:check` passes (lint + format + import sort)
+- [ ] `yarn type-check` passes
+- [ ] `yarn check:deprecated` passes
+- [ ] `yarn test` passes (add tests for new behaviour)
+- [ ] No `console.*` or debugging code left behind (use `logger` from `@/lib/logger`)
+- [ ] Self-review of your own diff
 
 ### PR Title Format
 
