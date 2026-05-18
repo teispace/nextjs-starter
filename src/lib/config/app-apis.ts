@@ -1,11 +1,11 @@
 /**
- * Backend API endpoint paths.
+ * Server-side API endpoint paths.
  *
  * Paths are **relative to the API base** (which already includes `/api/v{n}`
  * via `getApiBaseUrl()`), so we don't repeat the version prefix here.
  *
- * Mirrors `AppPaths.auth` in the NestJS starter — keep in sync when the
- * backend renames routes.
+ * The defaults below are illustrative — replace them with the routes your
+ * own API exposes.
  */
 export const AppApis = {
   auth: {

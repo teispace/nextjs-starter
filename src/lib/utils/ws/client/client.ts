@@ -4,7 +4,8 @@ import { WsClient } from './ws-client';
  * Default app-wide WebSocket client. Lazily constructed on first access so
  * importing this module from a server-bundled file (e.g. an isomorphic
  * shared util) doesn't instantiate anything until a client component
- * actually uses it. Mirrors the `fetchClient` / `axiosClient` pattern.
+ * actually uses it. Follows the same singleton-accessor pattern as
+ * `fetchClient` / `axiosClient`.
  *
  * For multi-namespace apps, use {@link createWsClient} to spin up
  * additional instances.

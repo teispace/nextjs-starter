@@ -67,7 +67,7 @@ describe('fetch refreshAuthToken', () => {
     expect(calledUrl).toBe('https://api.example.com/api/v1/auth/refresh');
   });
 
-  it('sends an X-Request-Id header matching the backend pattern', async () => {
+  it('sends an X-Request-Id header matching the expected pattern', async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({

@@ -13,7 +13,7 @@ import { generateRequestId, REQUEST_ID_HEADER } from '../shared';
  * 'include'`. Bearer-mode (`SAVE_AUTH_TOKENS=true`): we additionally send
  * the stored refresh token as a Bearer header for non-browser callers.
  *
- * Backend response shape (`RefreshTokensResponseDto`):
+ * Expected response shape (adjust `RefreshTokensResponse` to match your API):
  *   { accessToken, refreshToken, expiresIn, sessionId }
  * wrapped in the standard `{ data: ... }` envelope.
  */

@@ -10,14 +10,12 @@ import type {
 /**
  * Events the **client** sends to the server.
  *
- * Mirrors `ClientToServerEvents` in the NestJS-starter backend
- * (`src/infrastructure/websocket/types/ws-events.interface.ts`). Keep these
- * field-for-field aligned — the server's typed gateway will not deliver any
- * event not declared in its map, and silent drift will fail at runtime
- * rather than at compile time.
+ * Keep these field-for-field aligned with what the server actually accepts —
+ * the typed gateway on the other side will not deliver any event it doesn't
+ * recognise, and silent drift fails at runtime rather than at compile time.
  *
  * Extend this interface in your own feature folders via TypeScript
- * declaration merging if you add custom client→server events to a gateway:
+ * declaration merging when you add custom client→server events:
  *
  * ```ts
  * // src/features/chat/types/ws-events.ts

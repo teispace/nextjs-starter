@@ -19,7 +19,7 @@ function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
  * via the browser jar with `credentials: 'include'`. The server-only
  * client (`@/lib/utils/http/server`) passes a callback that reads
  * `next/headers`, which is how SSR requests carry the user's cookies to
- * the backend.
+ * the upstream API.
  */
 export type CookieResolver = () => Promise<string | undefined>;
 
@@ -35,7 +35,7 @@ export async function applyRequestInterceptors(
   };
 
   // Request-ID: send a fresh ID per call unless the caller supplied a valid one.
-  // Backend echoes whatever we send back to us when it matches its pattern.
+  // A well-behaved server echoes whatever we send back when it matches the pattern.
   const providedId =
     mergedHeaders[REQUEST_ID_HEADER] ?? mergedHeaders[REQUEST_ID_HEADER.toLowerCase()];
   if (!(providedId && isValidRequestId(providedId))) {

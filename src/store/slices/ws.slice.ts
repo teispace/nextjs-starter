@@ -22,7 +22,7 @@ export interface WsState {
   /** Set when the server force-disconnects. Inspect alongside `reconnectable`. */
   forceDisconnectReason: WsDisconnectReason | null;
   /**
-   * Mirror of the force-disconnect payload's `reconnectable` flag. `null`
+   * Reflects the force-disconnect payload's `reconnectable` flag. `null`
    * means no force-disconnect has happened. `false` means the UI should
    * show "you were signed out" and route to login.
    */

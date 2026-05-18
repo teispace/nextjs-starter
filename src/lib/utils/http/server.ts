@@ -9,8 +9,8 @@ import { secureStorageTokenStore } from './token-store';
 
 /**
  * **Server-only HTTP clients.** Use these from Server Components, Server
- * Actions, and Route Handlers when you need the backend's HttpOnly auth
- * cookies to flow to the upstream request.
+ * Actions, and Route Handlers when you need HttpOnly auth cookies to flow
+ * to the upstream request.
  *
  * The universal `@/lib/utils/http` entry doesn't forward cookies — in the
  * browser the cookie jar handles it natively, but on the server there's

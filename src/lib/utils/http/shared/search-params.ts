@@ -2,11 +2,10 @@
  * Build a `URLSearchParams` instance from a typed query object.
  *
  * Skips keys whose value is `undefined`, `null`, or an empty string so
- * defaults stay implicit (the backend's `BaseQueryDto` has its own defaults
- * — sending empty strings would override them). Coerces numbers/booleans
- * to strings, leaves strings untouched, and serialises arrays as repeated
- * keys (`?tag=a&tag=b`) — the encoding `qs.stringify` / NestJS' parser
- * round-trips natively.
+ * server-side defaults stay implicit (sending empty strings would override
+ * them). Coerces numbers/booleans to strings, leaves strings untouched, and
+ * serialises arrays as repeated keys (`?tag=a&tag=b`) — the encoding most
+ * common server-side query parsers round-trip natively.
  *
  * Use with a typed query interface so the call site reads as a single
  * structured object instead of a string-bag:

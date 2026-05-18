@@ -10,8 +10,8 @@ A production-ready, feature-packed starter template for Next.js applications. Bu
 - **Framework** — Next.js 16 (App Router, React Compiler, `proxy.ts` edge interception), React 19, TypeScript 6, Tailwind v4.
 - **i18n** — `next-intl` with locale-scoped routes under `src/app/[locale]/`, server-configured `timeZone` to avoid hydration mismatches.
 - **State** — Redux Toolkit + redux-persist with a per-request store (`useRef`-based), SSR-safe storage (`src/store/storage.ts`), and `preloadedState` support for Server Component → Redux hydration.
-- **HTTP** — dual clients (`fetchClient` + `axiosClient`) on a shared foundation (`src/lib/utils/http/shared/`): runtime-aware cookie forwarding (browser jar in CSR, `next/headers` injection in RSC), automatic `X-Request-Id` correlation with the backend, single `parseApiError` error pipeline, cookie-mode auth by default with a one-flag flip to bearer-mode. Backend-compatible response envelope, pagination (offset + cursor), and base query types ship out of the box.
-- **WebSocket** — typed Socket.IO client (`src/lib/utils/ws/`) matching the NestJS-starter `/ws` gateway: cookie or bearer auth (reuses `SAVE_AUTH_TOKENS`), application-level heartbeat, reconnection with `auth:force:disconnect` policy enforcement (server-flagged `reconnectable` boolean), public/anonymous mode opt-in, Redux slice for connection state (not persisted), three hooks (`useWsStatus`, `useWsEvent`, `useWsEmit`) with lazy connect, hard SSR boundary.
+- **HTTP** — dual clients (`fetchClient` + `axiosClient`) on a shared foundation (`src/lib/utils/http/shared/`): runtime-aware cookie forwarding (browser jar in CSR, `next/headers` injection in RSC), automatic `X-Request-Id` correlation end-to-end, single `parseApiError` error pipeline, cookie-mode auth by default with a one-flag flip to bearer-mode. Standard response envelope, pagination (offset + cursor), and base query types ship out of the box.
+- **WebSocket** — typed Socket.IO client (`src/lib/utils/ws/`) for a `/ws` gateway: cookie or bearer auth (reuses `SAVE_AUTH_TOKENS`), application-level heartbeat, reconnection with `auth:force:disconnect` policy enforcement (server-flagged `reconnectable` boolean), public/anonymous mode opt-in, Redux slice for connection state (not persisted), three hooks (`useWsStatus`, `useWsEvent`, `useWsEmit`) with lazy connect, hard SSR boundary.
 - **Env validation** — zod-validated, cached at module load (`src/lib/env/`). Add a variable in one place and type-safety, validation, and coercion flow everywhere.
 - **Logger** — pino with env-aware transports (pretty in dev, JSON to stdout in prod, silent in test) and automatic redaction of tokens / passwords / auth headers.
 - **Theme** — `@teispace/next-themes` (drop-in replacement for the unmaintained `next-themes`).
@@ -54,7 +54,7 @@ For deeper detail see `docs/structure.md`, `src/features/README.md`, and `src/i1
 - **[Feature-Based Architecture](src/features/README.md)** — how features are organized and how to add new ones.
 - **[Internationalization (i18n)](src/i18n/README.md)** — using translations, adding locales, routing.
 - **[HTTP Client](src/lib/utils/http/README.md)** — `fetchClient` / `axiosClient` usage guide.
-- **[WebSocket Client](src/lib/utils/ws/README.md)** — `wsClient` + React hooks for the backend's `/ws` gateway.
+- **[WebSocket Client](src/lib/utils/ws/README.md)** — `wsClient` + React hooks for a `/ws` gateway.
 - **[Changelog](CHANGELOG.md)** — notable changes.
 
 ## 🏗️ Architecture

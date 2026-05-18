@@ -46,7 +46,7 @@ describe('FetchClient params option', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/users?page=2&size=20`);
   });
 
-  it('skips undefined/null/empty values so backend defaults win', async () => {
+  it('skips undefined/null/empty values so server-side defaults win', async () => {
     await client.get('/users', {
       params: { page: 1, size: undefined, search: '', sort: null as unknown as string },
     });

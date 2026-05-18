@@ -41,7 +41,7 @@ describe('AxiosClient paramsSerializer (shared serialiser regression guard)', ()
     expect(serialise({ page: 2, size: 20 })).toBe('page=2&size=20');
   });
 
-  it('skips undefined/null/empty so backend defaults win', () => {
+  it('skips undefined/null/empty so server-side defaults win', () => {
     expect(serialise({ page: 1, size: undefined, search: '', sort: null })).toBe('page=1');
   });
 

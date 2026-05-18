@@ -1,12 +1,11 @@
 import { Environment } from '../enums';
 
 /**
- * URI version prefix the backend mounts under (`/api/v{n}`).
+ * URI version prefix mounted by the API (`/api/v{n}`).
  *
- * Owned by the frontend because the backend uses Nest URI versioning — the
- * version is part of the **contract**, not the deployment. Bumping it here is
- * a single-line change; pushing it into env means every environment has to be
- * touched in lockstep.
+ * Treated as part of the contract, not the deployment — bumping it here is
+ * a single-line change. Pushing it into env would mean every environment
+ * has to be updated in lockstep, which is rarely worth it.
  *
  * Use `getApiBaseUrl()` from `./api-url` to compose the full base URL.
  */
@@ -15,9 +14,9 @@ export const API_PREFIX = '/api/v1';
 export const API_RESPONSE_DATA_KEY = 'data';
 
 /**
- * Cookie-mode auth is the default: backend sets HttpOnly access/refresh
- * cookies on login and reads them via Passport extractors. Flip to `true`
- * to switch to bearer-token mode — the token store + Authorization header
+ * Cookie-mode auth is the default: the server sets HttpOnly access/refresh
+ * cookies on login and reads them back on each request. Flip to `true` to
+ * switch to bearer-token mode — the token store + Authorization header
  * plumbing is already in place but inert by default.
  */
 export const SAVE_AUTH_TOKENS = false;

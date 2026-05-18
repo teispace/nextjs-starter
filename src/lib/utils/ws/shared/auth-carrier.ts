@@ -17,12 +17,12 @@ import { secureStorageTokenStore } from '../../http/token-store';
  *   from an HTTP request, so cookies flow when `withCredentials` is set).
  *
  * - **Bearer-mode** (`SAVE_AUTH_TOKENS = true`) — return
- *   `{ token: <accessToken> }`. The backend's three-source extractor
- *   accepts `handshake.auth.token` with highest priority.
+ *   `{ token: <accessToken> }`. Most server-side token extractors accept
+ *   `handshake.auth.token` with highest priority.
  *
  * - **Anonymous** (caller passed `anonymous: true`) — return `undefined`,
- *   skipping both branches. The server falls into the anonymous-connection
- *   path (only `@WsPublic()` handlers are reachable).
+ *   skipping both branches. The server falls into its anonymous-connection
+ *   path (only public handlers are reachable).
  *
  * Returning `undefined` is **the right shape** for socket.io-client — it
  * leaves the `auth` field unset on the handshake rather than sending an

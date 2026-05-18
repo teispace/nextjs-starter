@@ -9,7 +9,7 @@ import {
 } from './request-id';
 
 describe('request-id', () => {
-  it('generates IDs matching the backend pattern', () => {
+  it('generates IDs matching the expected pattern', () => {
     for (let i = 0; i < 20; i++) {
       const id = generateRequestId();
       expect(id).toMatch(REQUEST_ID_PATTERN);

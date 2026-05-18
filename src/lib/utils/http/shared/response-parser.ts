@@ -1,7 +1,7 @@
 import { ApiException } from '@/lib/errors';
 
 /**
- * Build an `ApiException` from a backend error response body.
+ * Build an `ApiException` from a server error response body.
  *
  * Both HTTP clients used to inline this parsing — every change to the error
  * envelope (e.g. adding `requestId`) had to be made twice and inevitably
@@ -9,8 +9,7 @@ import { ApiException } from '@/lib/errors';
  *
  * `responseRequestId` is the value read from the `X-Request-Id` response
  * header. It's used as a fallback when the error body didn't carry one
- * (e.g. when the backend rejected the request before the exception filter
- * stamped the envelope).
+ * (e.g. when the server rejected the request before stamping the envelope).
  */
 export function parseApiError(
   body: unknown,

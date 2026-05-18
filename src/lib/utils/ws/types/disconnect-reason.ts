@@ -1,13 +1,12 @@
 /**
- * Server-issued disconnect reasons, mirroring
- * `WS_DISCONNECT_REASON` in the NestJS-starter backend
- * (`src/infrastructure/websocket/websocket.constants.ts`).
+ * Server-issued disconnect reasons. Extend this map to match whatever
+ * reasons the server may stamp on `auth:force:disconnect` payloads.
  *
- * Clients must branch on the payload's `reconnectable: boolean` flag rather
- * than on the reason string — the boolean is the contract; the reason is
- * for logging / UX. The mapping is centralised in
- * {@link isReconnectableReason} so it stays in sync if the backend adjusts
- * the policy.
+ * Clients must branch on the payload's `reconnectable: boolean` flag
+ * rather than on the reason string — the boolean is the contract; the
+ * reason is for logging / UX. The mapping is centralised in
+ * {@link isReconnectableReason} so it stays in one place if the policy
+ * changes.
  */
 export const WS_DISCONNECT_REASON = {
   SESSION_REVOKED: 'session_revoked',
@@ -29,8 +28,8 @@ const RECONNECTABLE: ReadonlySet<WsDisconnectReason> = new Set([
 /**
  * Whether the client should transparently reconnect after the given reason.
  *
- * Use as a defensive fallback only — the server stamps `reconnectable` on
- * the payload, and that is the authoritative contract.
+ * Use as a defensive fallback only — when the server stamps `reconnectable`
+ * on the payload, that flag is the authoritative contract.
  */
 export function isReconnectableReason(reason: WsDisconnectReason): boolean {
   return RECONNECTABLE.has(reason);

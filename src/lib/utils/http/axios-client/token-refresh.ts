@@ -8,11 +8,12 @@ import type { RefreshTokensResponse, TokenStore } from '@/types';
 /**
  * Rotate the access/refresh token pair via `POST /auth/refresh`.
  *
- * Mirror of the fetch-client variant. Cookie-mode (default): refresh token
- * rides the `refresh` HttpOnly cookie via `withCredentials`. Bearer-mode
- * (`SAVE_AUTH_TOKENS=true`): the stored refresh token is sent as Bearer.
+ * Companion of the fetch-client variant. Cookie-mode (default): refresh
+ * token rides the `refresh` HttpOnly cookie via `withCredentials`.
+ * Bearer-mode (`SAVE_AUTH_TOKENS=true`): the stored refresh token is sent
+ * as Bearer.
  *
- * Backend response shape (`RefreshTokensResponseDto`):
+ * Expected response shape (adjust `RefreshTokensResponse` to match your API):
  *   { accessToken, refreshToken, expiresIn, sessionId }
  * wrapped in the standard `{ data: ... }` envelope.
  */

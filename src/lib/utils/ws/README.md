@@ -1,10 +1,10 @@
 # WebSocket Client
 
-**TL;DR** — Typed Socket.IO client wrapping `socket.io-client` against the NestJS-starter backend. Cookie-mode auth by default, public/anonymous mode opt-in. Heartbeat, reconnection, and `auth:force:disconnect` handling are built in. Connection state flows through Redux; subscriptions through three small hooks. **Browser-only** — opening a socket from a Server Component throws.
+**TL;DR** — Typed Socket.IO client wrapping `socket.io-client`. Cookie-mode auth by default, public/anonymous mode opt-in. Heartbeat, reconnection, and `auth:force:disconnect` handling are built in. Connection state flows through Redux; subscriptions through three small hooks. **Browser-only** — opening a socket from a Server Component throws.
 
 ```
 src/lib/utils/ws/
-├─ types/           backend-mirrored event maps + payload shapes
+├─ types/           event maps + payload shapes (the contract)
 ├─ shared/          runtime guard, auth-carrier, URL composer (internal)
 ├─ client/          WsClient class + default `wsClient` singleton (lazy)
 ├─ redux/           bridge + selectors (internal: only StoreProvider attaches)
@@ -38,7 +38,6 @@ Feature code imports from `@/lib/utils/ws` only. `shared/`, `redux/bridge`, and 
   - [Testing components that use the WS layer](#testing-components-that-use-the-ws-layer)
 - [API reference](#api-reference)
 - [Troubleshooting](#troubleshooting)
-- [Related docs](#related-docs)
 
 ---
 
@@ -89,14 +88,14 @@ No new env var. If you change the WS namespace server-side, override via `create
 
 | Constant | Default | Meaning |
 |---|---|---|
-| `WS_NAMESPACE` | `/ws` | Backend namespace mounted by `WsGateway` |
-| `WS_HEARTBEAT_INTERVAL_MS` | `25_000` | Application-level `ping` cadence. Must be < backend `WS_SOCKET_TTL_SECONDS` (default 120 s) |
+| `WS_NAMESPACE` | `/ws` | Server-side namespace path |
+| `WS_HEARTBEAT_INTERVAL_MS` | `25_000` | Application-level `ping` cadence. Must be strictly less than the server's per-socket TTL |
 | `WS_TOKEN_RENEWAL_LEAD_MS` | `60_000` | Lead time before access-token expiry (bearer mode only) |
 | `WS_RECONNECTION_DELAY_MIN_MS` | `1_000` | Socket.IO reconnection base delay |
 | `WS_RECONNECTION_DELAY_MAX_MS` | `10_000` | Socket.IO reconnection cap (exponential backoff) |
 | `SAVE_AUTH_TOKENS` | `false` | Cookie-mode (default) vs bearer-mode (re-uses the HTTP layer's flag) |
 
-All defaults match the backend's documented defaults (`nestjs-starter/docs/socket.md` §3, §15) — tune only if you've changed the matching backend env vars.
+Tune these only if you've changed the corresponding values on the server — drift can cause socket TTLs to expire mid-connection.
 
 ---
 
@@ -122,8 +121,8 @@ All defaults match the backend's documented defaults (`nestjs-starter/docs/socke
                           │                   │ WSS / transports:['websocket']
                           │  bridge           ▼
                           │             ┌─────────────────┐
-                          └─────────────┤  Backend /ws    │
-                            dispatches   │  (NestJS)      │
+                          └─────────────┤  Server /ws     │
+                            dispatches   │  gateway       │
                                          └─────────────────┘
 ```
 
@@ -144,7 +143,7 @@ The WS layer reuses the HTTP layer's `SAVE_AUTH_TOKENS` flag (in `src/lib/config
 
 #### Cookie-mode (default, `SAVE_AUTH_TOKENS = false`)
 
-After the user logs in via HTTP, the backend sets an HttpOnly `access` cookie. When you call `wsClient.connect()`, the browser cookie jar attaches that cookie to the Socket.IO handshake automatically. The backend's three-source token extractor (auth payload → Authorization header → cookie) reads it and authenticates the socket.
+After the user logs in via HTTP, the server sets an HttpOnly `access` cookie. When you call `wsClient.connect()`, the browser cookie jar attaches that cookie to the Socket.IO handshake automatically. A typical server-side extractor (auth payload → Authorization header → cookie) reads it and authenticates the socket.
 
 You write **no auth-related code** in cookie-mode. Just `useWsEvent` or `wsClient.connect()` and the rest happens transparently.
 
@@ -160,15 +159,15 @@ export function Notifications() {
 }
 ```
 
-**Limitation in v1:** tokens never touch JS, so the frontend can't drive in-place `auth:token:renew` (the backend handler expects the refresh token in the payload). When the access token expires the socket disconnects, then reconnects with a fresh access cookie that the HTTP layer refreshed on a parallel API call. One sub-second blip; users almost never notice.
+**Limitation in v1:** tokens never touch JS, so the frontend can't drive in-place `auth:token:renew` (handlers typically expect the refresh token in the payload). When the access token expires the socket disconnects, then reconnects with a fresh access cookie that the HTTP layer refreshed on a parallel API call. One sub-second blip; users almost never notice.
 
 #### Bearer-mode (`SAVE_AUTH_TOKENS = true`)
 
-Flip the flag. Now the WS client reads the access token from `secureStorageTokenStore` (`react-secure-storage` wrapper) and sends it as `handshake.auth.token`. The backend's extractor picks that up with highest priority — same code path, different carrier.
+Flip the flag. Now the WS client reads the access token from `secureStorageTokenStore` (`react-secure-storage` wrapper) and sends it as `handshake.auth.token`. Most server-side extractors accept that with highest priority — same code path, different carrier.
 
 Bearer-mode is useful when:
 - You're targeting React Native or a webview where cookies don't behave the same way.
-- You're integrating with a backend that's CORS-restricted enough that cookie credentials don't flow.
+- The server's CORS posture is restrictive enough that cookie credentials don't flow.
 - You need to debug auth by inspecting the token in DevTools.
 
 If `SAVE_AUTH_TOKENS = true` and no token is stored, `wsClient.connect()` rejects with `WS_AUTH_REQUIRED` **before** opening the socket — you don't get a misleading silent failure.
@@ -182,7 +181,7 @@ wsClient.connect().catch(() => { /* the lifecycle emitter already reported */ })
 
 #### Anonymous mode (no auth at all)
 
-Opt-in per-call. The backend admits the connection up to a global cap (`WS_MAX_ANONYMOUS_SOCKETS = 10_000` server-side). Only handlers decorated with `@WsPublic()` are reachable — currently `ping`, `presence:subscribe`, `presence:unsubscribe`.
+Opt-in per-call. Whether the server admits the connection (and what global cap it enforces) is up to the server. When admitted, only handlers the server marks public are reachable — typically things like `ping`, `presence:subscribe`, `presence:unsubscribe`.
 
 ```ts
 await wsClient.connect({ anonymous: true });
@@ -417,7 +416,7 @@ const error = useAppSelector(selectWsLastError);
 
 ### Presence (online/offline tracking)
 
-The backend tracks which users are online via Redis. To watch a specific user, subscribe at the WS level and let the slice / hooks fan the updates out:
+The default event map includes `presence:*` events for tracking online/offline state. To watch a specific user, subscribe at the WS level and let the slice / hooks fan the updates out:
 
 ```tsx
 function UserPresenceDot({ userId }: { userId: string }) {
@@ -445,11 +444,11 @@ function UserPresenceDot({ userId }: { userId: string }) {
 }
 ```
 
-**Per-socket cap:** 50 presence subscriptions (backend-enforced). If you need to watch more users, design around it — e.g. subscribe to a room and let the server fan out, rather than subscribing to every user individually.
+**Per-socket cap:** servers commonly enforce a maximum number of presence subscriptions per socket. If you need to watch more users than the server allows, design around it — e.g. subscribe to a room and let the server fan out, rather than subscribing to every user individually.
 
 ### Handling server-initiated disconnects
 
-The backend can force a disconnect for several reasons. **Always branch on `reconnectable`, never on `reason`** — the reason is for logs/UX; the boolean is the contract.
+The server can force a disconnect for several reasons. **Always branch on `reconnectable`, never on `reason`** — the reason is for logs/UX; the boolean is the contract.
 
 | `reason` | `reconnectable` | Client behaviour | UI guidance |
 |---|---|---|---|
@@ -493,7 +492,7 @@ Mount it once near the root of the authenticated app shell.
 
 ### Public / anonymous flows
 
-Anonymous mode reaches only `@WsPublic()` handlers. The backend currently exposes `ping`, `presence:subscribe`, and `presence:unsubscribe` as public — enough to build a "live visitor count" or public-presence widget without forcing authentication.
+Anonymous mode reaches only the handlers the server marks public — typically `ping`, `presence:subscribe`, and `presence:unsubscribe`. That's usually enough to build a "live visitor count" or public-presence widget without forcing authentication.
 
 ```tsx
 'use client';
@@ -545,7 +544,7 @@ useEffect(() => attachWsBridge(chatWsClient, dispatch), [dispatch]);
 
 ### Adding custom feature events
 
-The backend's `ClientToServerEvents` / `ServerToClientEvents` are the contract. To extend on the frontend, use TypeScript declaration merging — keep the merge file near the feature that introduces the event:
+`ClientToServerEvents` / `ServerToClientEvents` in `src/lib/utils/ws/types/events.ts` are the contract. To extend, use TypeScript declaration merging — keep the merge file near the feature that introduces the event:
 
 ```ts
 // src/features/chat/types/ws-events.ts
@@ -578,7 +577,7 @@ useWsEvent('message:new', (msg) => {           // fully typed
 });
 ```
 
-**Coordinate with the backend.** Events not declared on the backend's gateway are silently dropped on the server. Add the `@SubscribeMessage` handler there first; then add the frontend declarations.
+**Coordinate with the server.** Events not registered server-side are silently dropped. Add the handler there first; then add the frontend declarations.
 
 ### Imperative use outside React
 
@@ -731,22 +730,22 @@ No subscriber has triggered the lazy connect. Either render a component that cal
 
 ### "Connected but events don't arrive"
 
-The event name in `useWsEvent` doesn't match the backend's gateway. Check:
-1. The backend handler is registered with `@SubscribeMessage('foo:bar')`.
+The event name in `useWsEvent` doesn't match what the server emits. Check:
+1. The server-side handler is registered under the same event name.
 2. The frontend declares the same name in `ServerToClientEvents`.
 3. CORS allows your origin — Socket.IO uses the same CORS gate as HTTP.
 
 ### "Server keeps disconnecting me with `max_age`"
 
-Backend's `WS_MAX_CONNECTION_AGE_MS` (default 24 h). The client auto-reconnects on this reason — if you're seeing rapid cycles, check that `reconnectable: true` is being honoured (your custom force-disconnect handler may be tearing things down).
+Many servers enforce a maximum connection age (e.g. 24 h). The client auto-reconnects on this reason — if you're seeing rapid cycles, check that `reconnectable: true` is being honoured (your custom force-disconnect handler may be tearing things down).
 
 ### "Sessions revoked when I refresh the page"
 
-Cookie-mode relies on the browser carrying the access cookie. If your dev setup has frontend on a different origin from the backend (e.g. `localhost:3000` vs `localhost:8080`), check the backend's `COOKIE_SAMESITE` and `COOKIE_DOMAIN`.
+Cookie-mode relies on the browser carrying the access cookie. If your dev setup has the frontend on a different origin from the API (e.g. `localhost:3000` vs `localhost:8080`), check whatever `SameSite` / cookie-domain settings the server uses.
 
 ### "Connection drops every ~2 minutes"
 
-Application-level heartbeat isn't reaching the server. The client sends `ping` every 25 s — if a corporate proxy or service-worker is blocking outgoing pings, the backend's Redis socket TTL (default 120 s) expires and the next push event finds no socket. Check that `transports: ['websocket']` is actually negotiated (look for `Sec-WebSocket-Protocol` in DevTools) and that no service worker is intercepting `/ws`.
+Application-level heartbeat isn't reaching the server. The client sends `ping` every 25 s — if a corporate proxy or service-worker is blocking outgoing pings, the server's socket TTL expires and the next push event finds no socket. Check that `transports: ['websocket']` is actually negotiated (look for `Sec-WebSocket-Protocol` in DevTools) and that no service worker is intercepting `/ws`.
 
 ### Tests fail with "Cannot set properties of null (setting 'textBaseline')"
 
@@ -760,7 +759,4 @@ React 18+ in Strict Mode double-invokes effects in dev. The lazy-connect path is
 
 ## Related docs
 
-- Backend WS contract → `nestjs-starter/docs/socket.md`
-- Event interfaces (source of truth) → `nestjs-starter/src/infrastructure/websocket/types/ws-events.interface.ts`
-- Disconnect reasons + reconnectable policy → `nestjs-starter/src/infrastructure/websocket/websocket.constants.ts`
 - HTTP layer (sibling) → `src/lib/utils/http/README.md`

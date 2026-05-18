@@ -1,9 +1,9 @@
 import type { WsDisconnectReason } from './disconnect-reason';
 
 /**
- * Application or auth error payload. Mirrors `WsErrorPayload` in the
- * NestJS-starter backend and shares the same `{ key: message }` shape with
- * `ApiException.errors` from the HTTP layer.
+ * Application or auth error payload. Shares the same `{ key: message }`
+ * shape used by `ApiException.errors` in the HTTP layer so error rendering
+ * stays uniform across transports.
  */
 export interface WsErrorPayload {
   code: string;

@@ -82,7 +82,7 @@ nextjs-starter/
 │   ├── lib/                                    # Core utilities and configurations
 │   │   ├── config/                             # App configuration
 │   │   │   ├── api-url.ts                      # getApiBaseUrl() — bare origin + /api/v1
-│   │   │   ├── app-apis.ts                     # Backend endpoint paths
+│   │   │   ├── app-apis.ts                     # Server-side endpoint paths
 │   │   │   ├── app-locales.ts
 │   │   │   ├── app-paths.ts
 │   │   │   ├── constants.ts                    # API_PREFIX, SAVE_AUTH_TOKENS, env flags
@@ -103,7 +103,7 @@ nextjs-starter/
 │   │   │   ├── index.ts                        # Configured logger export
 │   │   │   └── constants.ts                    # Levels + sensitive-key redaction paths
 │   │   ├── utils/
-│   │   │   ├── http/                           # HTTP clients (backend-compatible transport)
+│   │   │   ├── http/                           # HTTP clients (standard JSON-API transport)
 │   │   │   │   ├── shared/                     # Universal foundation (client-bundle-safe)
 │   │   │   │   │   ├── request-id.ts           # X-Request-Id generation + extractors
 │   │   │   │   │   ├── request-id.test.ts
@@ -140,7 +140,7 @@ nextjs-starter/
 │   │   │   │   ├── token-store.ts              # secureStorageTokenStore (inert in cookie-mode)
 │   │   │   │   └── README.md
 │   │   │   ├── ws/                             # WebSocket client (Socket.IO, /ws gateway)
-│   │   │   │   ├── types/                      # Backend-mirrored event maps + payload shapes
+│   │   │   │   ├── types/                      # Event maps + payload shapes (the contract)
 │   │   │   │   │   ├── events.ts               # ClientToServerEvents, ServerToClientEvents
 │   │   │   │   │   ├── payloads.ts             # WsErrorPayload, WsTokenRenewedPayload, etc.
 │   │   │   │   │   ├── disconnect-reason.ts    # WsDisconnectReason + isReconnectableReason

@@ -183,7 +183,7 @@ export class WsClient {
       // socket.io-client auto-reconnects for `transport close`, `ping timeout`,
       // and network errors. For explicit server-side disconnects (`io server
       // disconnect`) it does not — those are handled by the force-disconnect
-      // event below. We mirror that by setting reconnecting vs disconnected.
+      // event below. We reflect that here by choosing reconnecting vs disconnected.
       if (this.fatalDisconnect) {
         this.setStatus('disconnected');
         return;
@@ -215,7 +215,7 @@ export class WsClient {
 
     socket.on('auth:force:disconnect', (payload: WsForceDisconnectPayload) => {
       // Trust the server's `reconnectable` flag; the helper is only a
-      // defensive cross-check for clients running against an older backend.
+      // defensive cross-check for older servers that don't stamp it.
       const reconnectable = payload.reconnectable ?? isReconnectableReason(payload.reason);
       if (!reconnectable) {
         this.fatalDisconnect = true;

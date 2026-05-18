@@ -178,7 +178,7 @@ describe('WsClient', () => {
       await client.connect();
       fakeSocket.simulateConnect();
 
-      // Simulate an older backend that didn't stamp `reconnectable`.
+      // Simulate an older server that didn't stamp `reconnectable`.
       fakeSocket.simulateServerEvent('auth:force:disconnect', {
         reason: WS_DISCONNECT_REASON.SERVER_SHUTDOWN,
       });

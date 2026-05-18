@@ -1,8 +1,7 @@
 /**
- * Auth payload shapes returned by the backend.
+ * Auth payload shapes returned by the API.
  *
- * Mirrors `AuthResponseDto` / `RefreshTokensResponseDto` in the NestJS starter
- * (`src/modules/auth/dto/auth-response.dto.ts`). Keep field names in sync.
+ * Adjust the fields here to match the auth contract your API exposes.
  */
 
 export interface AuthUser {

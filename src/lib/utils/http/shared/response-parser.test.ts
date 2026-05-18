@@ -5,7 +5,7 @@ import { ApiException } from '@/lib/errors';
 import { parseApiError } from './response-parser';
 
 describe('parseApiError', () => {
-  it('builds an ApiException from a well-formed backend error envelope', () => {
+  it('builds an ApiException from a well-formed error envelope', () => {
     const err = parseApiError(
       {
         status: 422,

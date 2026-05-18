@@ -1,6 +1,6 @@
 # HTTP Clients
 
-**TL;DR** — Two interchangeable HTTP clients (`fetchClient`, `axiosClient`) that talk to the NestJS-starter backend out of the box. Cookie-mode auth by default. Two entry points so the same API works in client components AND Server Components without leaking `next/headers` into the client bundle. Errors come back as a typed `ApiException`, never thrown. Every request is correlated with the backend via `X-Request-Id`. Pass typed query objects via `{ params }` — no `URLSearchParams` boilerplate.
+**TL;DR** — Two interchangeable HTTP clients (`fetchClient`, `axiosClient`) preconfigured for typical JSON APIs. Cookie-mode auth by default. Two entry points so the same API works in client components AND Server Components without leaking `next/headers` into the client bundle. Errors come back as a typed `ApiException`, never thrown. Every request carries an `X-Request-Id` for end-to-end correlation. Pass typed query objects via `{ params }` — no `URLSearchParams` boilerplate.
 
 ```
 src/lib/utils/http/
@@ -33,7 +33,6 @@ Feature code imports from `@/lib/utils/http` (universal) or `@/lib/utils/http/se
 - [API reference](#api-reference)
 - [Best practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
-- [Related docs](#related-docs)
 
 ---
 
@@ -75,7 +74,7 @@ export default async function ProfilePage() {
 NEXT_PUBLIC_API_URL=https://api.example.com
 ```
 
-`NEXT_PUBLIC_API_URL` is the **bare origin** — no `/api/v{n}` suffix. The version prefix is owned by the frontend and appended internally via `getApiBaseUrl()`:
+`NEXT_PUBLIC_API_URL` is the **bare origin** — no `/api/v{n}` suffix. The version prefix is treated as part of the contract, owned by the frontend, and appended internally via `getApiBaseUrl()`:
 
 - Empty → relative/proxied requests under the same origin.
 - Includes `/api/v1` by accident → stripped with a logger warning (no double-prefix).
@@ -93,7 +92,7 @@ The full env schema lives in `src/lib/env/schema.ts`.
 
 ### Endpoint paths
 
-`src/lib/config/app-apis.ts` mirrors the backend's `AppPaths.auth`. Paths are relative to the API base — they don't repeat `/api/v1`. Keep this file in sync when the backend renames a route:
+`src/lib/config/app-apis.ts` is the single place to keep server-side endpoint paths. Paths are relative to the API base — they don't repeat `/api/v1`. The defaults below are illustrative; replace them with the routes your API exposes:
 
 ```ts
 export const AppApis = {
@@ -170,7 +169,7 @@ See [Error handling](#error-handling) for what `ApiException` exposes (validatio
 
 ### Response unwrapping
 
-The backend wraps every success in `{ status, path, message, data, timestamp }`. By default, the clients return the inner `data` field — that's what `dataKey = 'data'` controls.
+The clients assume the API wraps each success in `{ status, path, message, data, timestamp }`. By default, they return the inner `data` field — that's what `dataKey = 'data'` controls. If your API uses a different envelope key, set `API_RESPONSE_DATA_KEY` (or override per-call).
 
 ```ts
 const result = await fetchClient.get<User>('/users/123');
@@ -196,7 +195,7 @@ const result = await fetchClient.get<User[]>('/users', undefined, 'items');
 
 Both clients accept a `params` option that takes a **typed query object** and serialises it for you. No string concat, no inline `URLSearchParams` boilerplate.
 
-The shared serialiser (`toSearchParams`) skips `undefined`/`null`/`''` so the backend's defaults (`page=1`, `size=10`, etc.) stay implicit, and it repeats keys for arrays (`tag=a&tag=b`). **Both clients use the same serialiser** — axios's default is overridden so query strings are byte-identical regardless of which client made the call.
+The shared serialiser (`toSearchParams`) skips `undefined`/`null`/`''` so server-side defaults (`page=1`, `size=10`, etc.) stay implicit, and it repeats keys for arrays (`tag=a&tag=b`). **Both clients use the same serialiser** — axios's default is overridden so query strings are byte-identical regardless of which client made the call.
 
 ### Define a query type per endpoint
 
@@ -212,7 +211,7 @@ export interface UsersQuery extends BaseQueryParams {
 }
 ```
 
-`BaseQueryParams` already mirrors the backend's `BaseQueryDto` exactly (`page`, `size`, `search`, `sort`, `order`) — no field-name drift.
+`BaseQueryParams` covers the common offset-pagination fields (`page`, `size`, `search`, `sort`, `order`) — keep your endpoint-specific queries consistent with these names and the API's defaults will line up cleanly.
 
 ### Call the endpoint with a single typed argument
 
@@ -335,11 +334,11 @@ For actual requests, prefer `{ params }` — it's terser and the client handles 
 
 ## Error handling
 
-All errors are `ApiException` instances on the left side of the result. The backend's `GlobalExceptionFilter` produces a structured envelope and `parseApiError` lifts every field into typed properties.
+All errors are `ApiException` instances on the left side of the result. `parseApiError` lifts every field from the API's error envelope into typed properties.
 
 ### Field-level validation errors
 
-Backend's exception filter returns a structured `errors` array. `ApiException` exposes helpers:
+When the API returns a structured `errors` array, `ApiException` exposes helpers to read it:
 
 ```ts
 const result = await fetchClient.post('/users', invalidPayload);
@@ -371,7 +370,7 @@ See the [`ApiException` reference](#apiexception) for the full surface.
 
 ### Cookie-mode (default)
 
-`SAVE_AUTH_TOKENS = false`. The backend sets HttpOnly `access` and `refresh` cookies on login, and reads them via Passport's cookie + Bearer extractor chain. The frontend:
+`SAVE_AUTH_TOKENS = false`. Assumes the server sets HttpOnly `access` and `refresh` cookies on login and accepts them on subsequent requests. The frontend:
 
 - Sends every request with `credentials: 'include'` (browser cookie jar) or an injected `Cookie` header (server).
 - Never reads tokens from the response body or stores them client-side.
@@ -387,7 +386,7 @@ Flip `SAVE_AUTH_TOKENS = true`. The clients then:
 - Attach `Authorization: Bearer <accessToken>` to every request.
 - Send the stored refresh token as Bearer when calling `/auth/refresh`.
 
-Both modes hit the **same** backend endpoint; only the carrier differs.
+Both modes hit the **same** server endpoint; only the carrier differs.
 
 ### Automatic refresh on 401
 
@@ -404,7 +403,7 @@ await axiosClient.get('/public/data', { _skipAuthInterceptor: true });
 
 ## Server-side rendering
 
-`credentials: 'include'` (fetch) and `withCredentials: true` (axios) are **browser-only**. Node has no cookie jar, so without explicit forwarding the backend's HttpOnly cookies never reach it from a Server Component, Server Action, or Route Handler.
+`credentials: 'include'` (fetch) and `withCredentials: true` (axios) are **browser-only**. Node has no cookie jar, so without explicit forwarding HttpOnly cookies never reach the upstream API from a Server Component, Server Action, or Route Handler.
 
 The HTTP layer ships **two entry points** to handle this without forcing every consumer to think about runtimes:
 
@@ -478,12 +477,12 @@ export default async function LandingPage() {
 
 ## Request correlation (X-Request-Id)
 
-Every outgoing request is stamped with a fresh UUID matching the backend's `REQUEST_ID_PATTERN` (`^[A-Za-z0-9_-]{1,128}$`). Backend behaviour:
+Every outgoing request is stamped with a fresh UUID matching `REQUEST_ID_PATTERN` (`^[A-Za-z0-9_-]{1,128}$`). A typical well-behaved server-side correlation layer will:
 
-- Accepts client-supplied IDs that match the pattern → echoes the same ID on the response.
-- Rejects malformed input → generates its own, echoes that.
-- Always sets `X-Request-Id` on the response (success header **and** error envelope `requestId` field).
-- Exposes the header via CORS so cross-origin browser fetches can read it.
+- Accept client-supplied IDs that match the pattern → echo the same ID on the response.
+- Reject malformed input → generate its own and echo that.
+- Always set `X-Request-Id` on the response (success header **and** error envelope `requestId` field).
+- Expose the header via CORS so cross-origin browser fetches can read it.
 
 The clients read the response header (or `body.requestId` on errors), stash it on `ApiException.requestId`, and make it available to your error handlers / Sentry / logger:
 
@@ -491,7 +490,7 @@ The clients read the response header (or `body.requestId` on errors), stash it o
 const result = await fetchClient.get('/users/123');
 if (result.isLeft()) {
   logger.error({ requestId: result.value.requestId }, 'lookup failed');
-  // Now grep both browser AND backend pino logs for the same requestId.
+  // Now grep both browser AND server-side logs for the same requestId.
 }
 ```
 
@@ -511,7 +510,7 @@ The interceptor only generates a fresh ID when none was provided or the provided
 
 ## Custom clients
 
-Use `createFetchClient` / `createAxiosClient` to point at a different upstream (a second backend, a third-party API) while keeping all the shared behaviour:
+Use `createFetchClient` / `createAxiosClient` to point at a different upstream (a second service, a third-party API) while keeping all the shared behaviour:
 
 ```ts
 import { createFetchClient, secureStorageTokenStore } from '@/lib/utils/http';
@@ -525,7 +524,7 @@ const upstream = createFetchClient({
 });
 ```
 
-The `createAxiosClient` shape mirrors this; pass `defaultHeaders` instead of `defaultOptions.headers`.
+The `createAxiosClient` shape is the same; pass `defaultHeaders` instead of `defaultOptions.headers`.
 
 For a custom token store, implement the `TokenStore` interface (5 methods: `getAccessToken`, `saveAccessToken`, `getRefreshToken`, `saveRefreshToken`, `clear`) and pass it in. See `src/lib/utils/http/token-store.ts` for the default `react-secure-storage` implementation as a reference.
 
@@ -560,17 +559,17 @@ For a custom token store, implement the `TokenStore` interface (5 methods: `getA
 | Field / method | Type | Notes |
 |---|---|---|
 | `status` | `number` | HTTP status. `0` for network failures. |
-| `message` | `string` | Human-readable summary from the backend. |
+| `message` | `string` | Human-readable summary from the API. |
 | `code` | `string \| undefined` | Machine-readable code (e.g. `USER_NOT_FOUND`). |
 | `errors` | `Array<Record<string, string>>` | Field-level validation errors. |
 | `data` | `Record<string, unknown>` | Arbitrary extra context. |
-| `path` | `string \| undefined` | Request path the backend logged. |
+| `path` | `string \| undefined` | Request path the API logged. |
 | `requestId` | `string \| undefined` | Correlation ID for log grepping. |
 | `containsKey(key)` | `boolean` | Whether a field error exists for `key`. |
 | `getErrorMessage(key)` | `string \| undefined` | Field error message. |
 | `getErrorMessageIfExists(key)` | `string` | Field error or the general message. |
 | `getFieldErrors()` | `Record<string, string>` | All field errors flattened. |
-| `ApiException.fromResponse(body, fallbackStatus?)` | `ApiException` | Build from a backend error envelope. |
+| `ApiException.fromResponse(body, fallbackStatus?)` | `ApiException` | Build from an API error envelope. |
 | `ApiException.convertAny(error)` | `ApiException` | Defensive fallback for unknown error values. |
 
 ### Shared utilities
@@ -588,7 +587,7 @@ All exported from `@/types`. See `src/types/common/` for the source of truth —
 - **Response envelopes:** `ApiResponse<T>`, `ApiErrorResponse`
 - **Pagination:** `ApiPaginationMeta`, `PaginatedApiResponse<T>`, `ApiCursorMeta`, `CursorPaginatedApiResponse<T>`
 - **Query inputs:** `BaseQueryParams`, `BaseCursorQueryParams` — extend these for endpoint-specific queries.
-- **Auth payloads:** `AuthUser`, `AuthTokens`, `AuthResponse`, `RefreshTokensResponse` — mirror the NestJS-starter DTOs.
+- **Auth payloads:** `AuthUser`, `AuthTokens`, `AuthResponse`, `RefreshTokensResponse` — adjust fields to match your API.
 - **Transport:** `TokenStore`, `QueryParams`, `FetchClientOptions`, `AxiosClientOptions`, `ExtendedRequestInit`.
 
 ---
@@ -613,7 +612,7 @@ Ranked by impact — the first three matter the most.
 - ❌ Build `URLSearchParams` inline or accept positional `(page, size)` args — pass a typed query object via `{ params }`.
 - ❌ Bake `/api/v1` into `NEXT_PUBLIC_API_URL`.
 - ❌ Import `next/headers` from feature code — the clients already handle SSR cookie forwarding.
-- ❌ Use `<any>` as a response type. If the backend's shape is genuinely unknown, model it as `unknown` and narrow.
+- ❌ Use `<any>` as a response type. If the API shape is genuinely unknown, model it as `unknown` and narrow.
 
 ---
 
@@ -621,30 +620,22 @@ Ranked by impact — the first three matter the most.
 
 ### "Max refresh attempts reached"
 
-Backoff tripped (3 attempts within `COOLDOWN_MS = 1000`). Check that `POST /auth/refresh` actually rotates the refresh cookie / returns the new tokens. Common culprit: backend session was revoked while the frontend kept retrying.
+Backoff tripped (3 attempts within `COOLDOWN_MS = 1000`). Check that `POST /auth/refresh` actually rotates the refresh cookie / returns the new tokens. Common culprit: the server-side session was revoked while the frontend kept retrying.
 
 ### Always redirected to `/login` in dev
 
-Cookie-mode requires the backend to set `access` / `refresh` cookies on a domain the frontend can read. In local dev this means same-host (e.g. both on `localhost`) or matching cookie domain. Check the backend's `COOKIE_DOMAIN` / `COOKIE_SAMESITE` env.
+Cookie-mode requires the server to set `access` / `refresh` cookies on a domain the frontend can read. In local dev this means same-host (e.g. both on `localhost`) or a matching cookie domain. Check whatever `COOKIE_DOMAIN` / `COOKIE_SAMESITE` settings your API uses.
 
 ### CORS errors with cookies
 
-Backend must allow the frontend's origin **and** `credentials: true`. The NestJS starter does this via a per-request origin validator (`src/bootstrap/utils/cors-validator.util.ts`) — add your frontend origin to its allow-list.
+The server must allow the frontend's origin **and** `credentials: true`. Add your frontend origin to whatever CORS allow-list your API exposes.
 
 ### Types don't match the response
 
-Most often: backend wraps the payload in `{ data: ... }`, frontend already unwraps `data` by default. If you see `result.value.data.foo`, you've double-unwrapped — drop the `.data` or pass `null` as `dataKey` if you really want the envelope.
+Most often: the API wraps the payload in `{ data: ... }`, and the client already unwraps `data` by default. If you see `result.value.data.foo`, you've double-unwrapped — drop the `.data` or pass `null` as `dataKey` if you really want the envelope.
 
 ### `X-Request-Id` missing on response
 
 Two causes:
-1. CORS — backend exposes `X-Request-Id` only on allow-listed origins.
-2. The backend rejected your supplied ID (didn't match `REQUEST_ID_PATTERN`) and the response had a different one. The error body's `requestId` is the authoritative value; the clients fall back to it automatically.
-
----
-
-## Related docs
-
-- Backend response envelope, exception filter, request-id middleware → `nestjs-starter/src/core/{interceptors,filters,modules/request-context}`
-- Backend pagination DTOs → `nestjs-starter/src/core/dto/{base-query,base-cursor-query,pagination-response,cursor-response}.dto.ts`
-- Auth endpoint paths → `nestjs-starter/src/core/constants/app-paths.constants.ts`
+1. CORS — the server is only exposing `X-Request-Id` to allow-listed origins.
+2. The server rejected your supplied ID (didn't match `REQUEST_ID_PATTERN`) and the response carried a different one. The error body's `requestId` is the authoritative value; the clients fall back to it automatically.

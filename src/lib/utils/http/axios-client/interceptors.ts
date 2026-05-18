@@ -30,8 +30,8 @@ export function setupRequestInterceptor(
   axiosInstance.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
       // Request-ID: stamp every outgoing request unless the caller supplied
-      // a valid one. Matches the backend's REQUEST_ID_PATTERN so the value
-      // is echoed back rather than rewritten server-side.
+      // a valid one. Matches REQUEST_ID_PATTERN so a server enforcing the
+      // same pattern echoes the value back rather than rewriting it.
       const providedId = readHeaderInsensitive(config.headers, REQUEST_ID_HEADER);
       if (!(providedId && isValidRequestId(providedId))) {
         config.headers.set(REQUEST_ID_HEADER, generateRequestId());

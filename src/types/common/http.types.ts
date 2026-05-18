@@ -3,7 +3,7 @@ export type DataKey = string | null;
 /**
  * Shape accepted by both clients' `params` option. Serialised via
  * `toSearchParams` so keys with `undefined`/`null`/`''` values are skipped
- * (lets backend defaults win) and array values become repeated keys.
+ * (lets server-side defaults win) and array values become repeated keys.
  */
 export type QueryParams = Record<string, unknown>;
 

@@ -1,36 +1,33 @@
 /**
  * WebSocket transport constants.
  *
- * Mirrors the backend's documented defaults
- * (`nestjs-starter/docs/socket.md` §3, §15). Tune locally only if you've
- * changed the matching backend env vars — drift causes Redis TTLs to
- * expire mid-connection.
+ * Tune locally only if you've changed the matching values on the server —
+ * drift can cause socket-metadata TTLs to expire mid-connection.
  */
 
-/** Backend namespace mounted by `WsGateway`. */
+/** Default namespace mounted by the server's WS gateway. */
 export const WS_NAMESPACE = '/ws';
 
 /**
  * Application-level heartbeat interval. **Not** the engine.io ping.
  *
- * The client sends `ping` every 25 s so the server refreshes the Redis
- * socket-metadata TTL (default 120 s server-side) and re-checks the
- * roles-version. Keep this strictly less than the server's
- * `WS_SOCKET_TTL_SECONDS` (default 120 s) — otherwise the slot expires
+ * The client sends `ping` every 25 s so the server can refresh its
+ * socket-metadata TTL and re-check any per-connection state. Keep this
+ * strictly less than the server's socket TTL — otherwise the slot expires
  * between pings and the socket is silently disconnected.
  */
 export const WS_HEARTBEAT_INTERVAL_MS = 25_000;
 
 /**
  * Schedule `auth:token:renew` this many ms before the access token expires.
- * The backend rate-limits renewals to 5 / min, so this margin must comfortably
- * exceed the typical request jitter (network blip + a one-shot retry).
+ * Servers commonly rate-limit renewals, so this margin should comfortably
+ * exceed typical request jitter (network blip + a one-shot retry).
  */
 export const WS_TOKEN_RENEWAL_LEAD_MS = 60_000;
 
 /**
- * Reconnection backoff bounds. Socket.IO doubles the delay on each attempt up
- * to the max. The backend recommends 1 s → 10 s for typical apps.
+ * Reconnection backoff bounds. Socket.IO doubles the delay on each attempt
+ * up to the max. 1 s → 10 s is a sensible default for typical apps.
  */
 export const WS_RECONNECTION_DELAY_MIN_MS = 1_000;
 export const WS_RECONNECTION_DELAY_MAX_MS = 10_000;

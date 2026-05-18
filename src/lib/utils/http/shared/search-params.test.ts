@@ -8,7 +8,7 @@ describe('toSearchParams', () => {
     expect(params.toString()).toBe('page=2&size=20&sort=createdAt&order=desc');
   });
 
-  it('skips undefined, null, and empty strings (lets backend defaults win)', () => {
+  it('skips undefined, null, and empty strings (lets server-side defaults win)', () => {
     const params = toSearchParams({
       page: 1,
       size: undefined,

@@ -1,13 +1,11 @@
 /**
- * Request-ID propagation, mirroring the NestJS starter's
- * `X-Request-Id` middleware.
+ * `X-Request-Id` propagation.
  *
- * The backend accepts client-supplied IDs only when they match
- * `REQUEST_ID_PATTERN` (alphanumeric/dash/underscore, ≤128 chars) — anything
- * else is rejected and a fresh UUID is generated server-side. We send a
- * compliant UUID per call by default so browser logs, frontend pino logs,
- * and backend pino logs all share the same trace ID without server-side
- * correlation work.
+ * A well-behaved server-side request-correlation layer accepts client-supplied
+ * IDs only when they match `REQUEST_ID_PATTERN` (alphanumeric/dash/underscore,
+ * ≤128 chars); otherwise it generates a fresh ID. We send a compliant UUID per
+ * call by default so browser logs, client-side pino logs, and server-side logs
+ * all share the same trace ID without extra correlation work.
  */
 
 export const REQUEST_ID_HEADER = 'X-Request-Id';
@@ -20,8 +18,8 @@ export function isValidRequestId(value: string): boolean {
 
 /**
  * Web Crypto `randomUUID()` is available in modern browsers, Node 19+,
- * and the Edge runtime. UUIDs match `REQUEST_ID_PATTERN` so the backend
- * will accept them verbatim.
+ * and the Edge runtime. UUIDs match `REQUEST_ID_PATTERN` so any server
+ * enforcing the same pattern will accept them verbatim.
  */
 export function generateRequestId(): string {
   return crypto.randomUUID();
