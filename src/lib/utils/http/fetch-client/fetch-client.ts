@@ -1,4 +1,4 @@
-import { API_RESPONSE_DATA_KEY, getApiBaseUrl } from '@/lib/config';
+import { API_RESPONSE_DATA_KEY, DEFAULT_TIMEOUT_MS, getApiBaseUrl } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
 import {
   type CookieResolver,
@@ -10,8 +10,14 @@ import {
   right,
 } from '@/types';
 
-import { extractDataByKey, TokenRefreshManager } from '../client-utils';
-import { extractRequestIdFromHeaders, parseApiError, toSearchParams } from '../shared';
+import { extractDataByKey, getRefreshManager } from '../client-utils';
+import {
+  abortToApiException,
+  buildAbortSignal,
+  extractRequestIdFromHeaders,
+  parseApiError,
+  toSearchParams,
+} from '../shared';
 import { applyRequestInterceptors, applyResponseInterceptors } from './interceptors';
 import { refreshAuthToken } from './token-refresh';
 
@@ -19,15 +25,16 @@ export class FetchClient {
   private baseURL: string;
   private tokenStore: FetchClientOptions['tokenStore'];
   private defaultOptions: RequestInit;
+  private defaultTimeout: number;
   private onUnauthorized?: () => void;
   private cookieResolver?: CookieResolver;
-  private refreshManager = new TokenRefreshManager();
 
   constructor(options: FetchClientOptions) {
     this.baseURL = options?.baseURL || getApiBaseUrl();
     this.tokenStore = options.tokenStore;
     this.onUnauthorized = options.onUnauthorized;
     this.cookieResolver = options.cookieResolver;
+    this.defaultTimeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
 
     this.defaultOptions = {
       credentials: 'include',
@@ -40,10 +47,20 @@ export class FetchClient {
   }
 
   private async handleTokenRefresh(): Promise<string | null> {
-    return this.refreshManager.handleRefresh(() => refreshAuthToken(this.tokenStore, this.baseURL));
+    // Singleflight is keyed by baseURL and SHARED across every client (fetch +
+    // axios) hitting the same upstream, so concurrent 401s never trigger more
+    // than one refresh of the rotating refresh token.
+    return getRefreshManager(this.baseURL).handleRefresh(() =>
+      refreshAuthToken(this.tokenStore, this.baseURL),
+    );
   }
 
-  private toApiException(error: unknown, response?: Response, body?: unknown): ApiException {
+  private toApiException(
+    error: unknown,
+    response?: Response,
+    body?: unknown,
+    timedOut = false,
+  ): ApiException {
     if (error instanceof ApiException) return error;
 
     if (response) {
@@ -56,12 +73,13 @@ export class FetchClient {
       return exception;
     }
 
+    // Abort / timeout get distinct codes so callers can tell a cancelled
+    // request (e.g. component unmounted) apart from a real network failure.
+    const cancellation = abortToApiException(error, timedOut);
+    if (cancellation) return cancellation;
+
     if (error instanceof Error) {
-      return new ApiException({
-        status: 0,
-        message: error.message || 'Network error',
-        stack: error.stack,
-      });
+      return ApiException.network(error.message || 'Network error', error.stack);
     }
 
     return ApiException.convertAny(error);
@@ -87,8 +105,16 @@ export class FetchClient {
     options: ExtendedRequestInit = {},
     dataKey?: DataKey,
   ): ResultAsync<T> {
-    const { params, ...fetchOptions } = options;
+    const { params, timeout, signal: callerSignal, ...fetchOptions } = options;
     const fullURL = this.buildURL(url, params);
+
+    // Merge the caller's signal with a timeout signal (whichever fires first
+    // wins). `isTimeout()` lets the catch block classify a post-hoc abort as
+    // a timeout vs a caller cancellation.
+    const { signal, isTimeout } = buildAbortSignal(
+      callerSignal ?? undefined,
+      timeout ?? this.defaultTimeout,
+    );
 
     try {
       const interceptedOptions = await applyRequestInterceptors(
@@ -98,7 +124,7 @@ export class FetchClient {
         this.cookieResolver,
       );
 
-      const response = await fetch(fullURL, interceptedOptions);
+      const response = await fetch(fullURL, { ...interceptedOptions, signal });
 
       const contentType = response.headers.get('Content-Type') || '';
       let responseData: unknown;
@@ -138,7 +164,7 @@ export class FetchClient {
 
       return right(extractDataByKey<T>(responseData, dataKey));
     } catch (error) {
-      return left(this.toApiException(error));
+      return left(this.toApiException(error, undefined, undefined, isTimeout()));
     }
   }
 

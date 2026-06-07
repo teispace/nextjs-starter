@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  __resetRefreshManagersForTests,
   extractDataByKey,
+  getRefreshManager,
   handleUnauthorizedRedirect,
   TOKEN_REFRESH_CONFIG,
   TokenRefreshManager,
@@ -179,5 +181,50 @@ describe('handleUnauthorizedRedirect', () => {
   it('redirects to the login path with the current URL encoded as redirectTo', () => {
     handleUnauthorizedRedirect();
     expect(window.location.href).toMatch(/redirectTo=%2Fsecret%3Ffoo%3Dbar$/);
+  });
+});
+
+describe('getRefreshManager (shared per-baseURL singleflight)', () => {
+  beforeEach(() => {
+    __resetRefreshManagersForTests();
+  });
+
+  it('returns the same manager instance for the same baseURL', () => {
+    const a = getRefreshManager('https://api.example.com/api/v1');
+    const b = getRefreshManager('https://api.example.com/api/v1');
+    expect(a).toBe(b);
+    expect(a).toBeInstanceOf(TokenRefreshManager);
+  });
+
+  it('returns distinct managers for different baseURLs', () => {
+    const a = getRefreshManager('https://api.example.com/api/v1');
+    const b = getRefreshManager('https://other.internal/api/v1');
+    expect(a).not.toBe(b);
+  });
+
+  it('shares singleflight state across callers of the same baseURL', async () => {
+    // Two "clients" (fetch + axios) resolving 401s concurrently against the
+    // same upstream must trigger exactly ONE refresh — not one each — or the
+    // rotating refresh token would be double-spent.
+    let resolveRefresh: (t: string | null) => void = () => {};
+    const refreshFn = vi.fn(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolveRefresh = resolve;
+        }),
+    );
+
+    const m1 = getRefreshManager('https://api.example.com/api/v1');
+    const m2 = getRefreshManager('https://api.example.com/api/v1');
+
+    const p1 = m1.handleRefresh(refreshFn);
+    const p2 = m2.handleRefresh(refreshFn);
+
+    resolveRefresh('shared');
+
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(refreshFn).toHaveBeenCalledOnce();
+    expect(r1).toBe('shared');
+    expect(r2).toBe('shared');
   });
 });

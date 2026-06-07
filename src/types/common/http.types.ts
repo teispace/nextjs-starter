@@ -11,6 +11,9 @@ declare module 'axios' {
   export interface AxiosRequestConfig {
     _retry?: boolean;
     _skipAuthInterceptor?: boolean;
+    // `timeout` is already declared natively on AxiosRequestConfig (ms).
+    // Pass `0` to disable it for a single request (axios's own convention).
+    // `signal` is likewise native. Both clients honour the same semantics.
     // Note: `params` is declared on AxiosRequestConfig natively as `any`.
     // We don't re-declare it here (module augmentation can only widen, not
     // narrow). Both clients' `paramsSerializer` runs all params through
@@ -39,6 +42,11 @@ export interface AxiosClientOptions {
   onUnauthorized?: () => void;
   tokenStore: TokenStore;
   /**
+   * Default per-request timeout in ms. Falls back to `DEFAULT_TIMEOUT_MS`.
+   * Pass `0` to disable the default timeout for this client.
+   */
+  timeout?: number;
+  /**
    * Headers merged into `axios.create({ headers })`. Use for static defaults
    * that should apply to every request from this client (e.g. an API-version
    * header). Per-request `Cookie` injection is handled by the interceptor,
@@ -55,6 +63,12 @@ export interface FetchClientOptions {
   tokenStore: TokenStore;
   cache?: RequestCache;
   defaultOptions?: RequestInit;
+  /**
+   * Default per-request timeout in ms. Falls back to `DEFAULT_TIMEOUT_MS`.
+   * Pass `0` to disable the default timeout for this client (e.g. a client
+   * dedicated to long-poll / streaming endpoints).
+   */
+  timeout?: number;
   /** Wire a server-side cookie resolver. Only `@/lib/utils/http/server` uses this. */
   cookieResolver?: CookieResolver;
 }
@@ -68,6 +82,14 @@ export interface ExtendedRequestInit extends RequestInit {
    * any literal `?...` already in the path. Skips `undefined`/`null`/`''`.
    */
   params?: QueryParams;
+  /**
+   * Per-request timeout in ms, overriding the client default. Pass `0` to
+   * disable the timeout for this call (long-poll / SSE / large upload).
+   * Composed with any `signal` you pass via `AbortSignal.any`, so whichever
+   * fires first wins. A timeout surfaces as `ApiException.isTimeout()`; an
+   * abort via your own `signal` surfaces as `ApiException.isCancelled()`.
+   */
+  timeout?: number;
 }
 
 export interface InterceptorResult {

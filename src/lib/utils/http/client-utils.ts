@@ -72,3 +72,34 @@ export class TokenRefreshManager {
     }
   }
 }
+
+/**
+ * Refresh managers are shared per upstream (`baseURL`), NOT per client
+ * instance. The `fetchClient` and `axiosClient` both point at the same API,
+ * so they must share one singleflight latch — otherwise a burst of 401s
+ * split across the two clients would each trigger their own refresh and, with
+ * a rotating refresh token, the second refresh would present an
+ * already-consumed token and the server's reuse-detection would revoke every
+ * session. Keying by `baseURL` also keeps custom clients pointed at a
+ * different service isolated from the main app's refresh cycle.
+ */
+const refreshManagers = new Map<string, TokenRefreshManager>();
+
+/** Get (or lazily create) the shared `TokenRefreshManager` for an upstream. */
+export function getRefreshManager(baseURL: string): TokenRefreshManager {
+  let manager = refreshManagers.get(baseURL);
+  if (!manager) {
+    manager = new TokenRefreshManager();
+    refreshManagers.set(baseURL, manager);
+  }
+  return manager;
+}
+
+/**
+ * Clear the shared refresh-manager registry. Test-only — lets each test start
+ * from a clean singleflight state without leaking attempt counters between
+ * cases. No-op cost in production (never called there).
+ */
+export function __resetRefreshManagersForTests(): void {
+  refreshManagers.clear();
+}

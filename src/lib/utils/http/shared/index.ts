@@ -2,6 +2,7 @@
 // edge, Node). For SSR cookie-forwarding helpers see `./server/`, which
 // is fenced behind `'server-only'` and reachable only via dynamic import
 // from within the HTTP interceptors.
+export { abortToApiException, buildAbortSignal, isAbortError } from './abort';
 export {
   extractRequestIdFromHeaderRecord,
   extractRequestIdFromHeaders,

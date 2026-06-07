@@ -1,5 +1,29 @@
 import type { ApiErrorResponse } from '@/types';
 
+/**
+ * Status used for client-side failures that never reached an HTTP response
+ * (network error, abort, timeout). The server never sends `0`, so it's an
+ * unambiguous "this failed before/without a real HTTP status" marker.
+ */
+export const CLIENT_FAILURE_STATUS = 0;
+
+/**
+ * Machine-readable `code` values stamped on client-originated failures so
+ * callers can branch without string-matching `message`. Server-supplied
+ * codes (e.g. `VALIDATION_ERROR`) flow through `code` untouched; these are
+ * the codes the HTTP clients mint themselves.
+ */
+export const CLIENT_ERROR_CODE = {
+  /** Request was cancelled via an `AbortSignal` (caller abort or unmount). */
+  CANCELLED: 'ERR_CANCELLED',
+  /** Request exceeded its timeout budget before a response arrived. */
+  TIMEOUT: 'ERR_TIMEOUT',
+  /** Transport failed with no HTTP response (DNS, connection refused, offline). */
+  NETWORK: 'ERR_NETWORK',
+} as const;
+
+export type ClientErrorCode = (typeof CLIENT_ERROR_CODE)[keyof typeof CLIENT_ERROR_CODE];
+
 type ApiExceptionOptions = {
   status: number;
   message: string;
@@ -57,6 +81,36 @@ export class ApiException extends Error {
     });
   }
 
+  /** A cancelled-request exception (caller aborted via `AbortSignal`). */
+  static cancelled(message = 'Request was cancelled', stack?: string): ApiException {
+    return new ApiException({
+      status: CLIENT_FAILURE_STATUS,
+      code: CLIENT_ERROR_CODE.CANCELLED,
+      message,
+      stack,
+    });
+  }
+
+  /** A timed-out-request exception (no response within the timeout budget). */
+  static timeout(message = 'Request timed out', stack?: string): ApiException {
+    return new ApiException({
+      status: CLIENT_FAILURE_STATUS,
+      code: CLIENT_ERROR_CODE.TIMEOUT,
+      message,
+      stack,
+    });
+  }
+
+  /** A network-failure exception (transport error, no HTTP response). */
+  static network(message = 'Network error', stack?: string): ApiException {
+    return new ApiException({
+      status: CLIENT_FAILURE_STATUS,
+      code: CLIENT_ERROR_CODE.NETWORK,
+      message,
+      stack,
+    });
+  }
+
   static convertAny(error: unknown): ApiException {
     if (error instanceof ApiException) return error;
 
@@ -99,5 +153,29 @@ export class ApiException extends Error {
     }
 
     return result;
+  }
+
+  /** True when the request was cancelled by the caller (abort signal). */
+  isCancelled(): boolean {
+    return this.code === CLIENT_ERROR_CODE.CANCELLED;
+  }
+
+  /** True when the request exceeded its timeout budget. */
+  isTimeout(): boolean {
+    return this.code === CLIENT_ERROR_CODE.TIMEOUT;
+  }
+
+  /** True when the transport failed without an HTTP response. */
+  isNetworkError(): boolean {
+    return this.code === CLIENT_ERROR_CODE.NETWORK;
+  }
+
+  /**
+   * True for any failure that never produced an HTTP response — cancellation,
+   * timeout, or a raw network/transport error. Handy for "should I show a
+   * retry button vs a validation message?" branching.
+   */
+  isClientFailure(): boolean {
+    return this.status === CLIENT_FAILURE_STATUS;
   }
 }
