@@ -242,6 +242,92 @@ describe('FetchClient 401 → refresh → retry lifecycle', () => {
   });
 });
 
+describe('FetchClient cancellation & timeout', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let client: FetchClient;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    client = new FetchClient({ baseURL: BASE, tokenStore: makeTokenStore() });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('passes a composed AbortSignal to fetch', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: null }));
+    await client.get('/users');
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init as RequestInit).signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('does not leak the `timeout` option into the fetch RequestInit', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: null }));
+    await client.get('/users', { timeout: 5000 });
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init as Record<string, unknown>).timeout).toBeUndefined();
+  });
+
+  it('maps a caller abort to a cancelled ApiException', async () => {
+    // fetch rejects with an AbortError when the signal aborts.
+    fetchMock.mockRejectedValue(new DOMException('aborted', 'AbortError'));
+
+    const ac = new AbortController();
+    const result = await client.get('/slow', { signal: ac.signal });
+
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value).toBeInstanceOf(ApiException);
+      expect(result.value.isCancelled()).toBe(true);
+      expect(result.value.status).toBe(0);
+    }
+  });
+
+  it('maps an elapsed timeout to a timeout ApiException', async () => {
+    // A tiny timeout: AbortSignal.timeout fires before fetch resolves. The
+    // mock rejects with AbortError (what fetch throws on signal abort); the
+    // client classifies it as a timeout via the timeout signal state.
+    fetchMock.mockImplementation(
+      (_url, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          );
+        }),
+    );
+
+    const result = await client.get('/slow', { timeout: 1 });
+
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value.isTimeout()).toBe(true);
+      expect(result.value.status).toBe(0);
+    }
+  });
+
+  it('honours timeout: 0 as unbounded (no timeout signal when no caller signal)', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ data: null }));
+    await client.get('/stream', { timeout: 0 });
+    const [, init] = fetchMock.mock.calls[0];
+    expect((init as RequestInit).signal ?? null).toBeNull();
+  });
+
+  it('tags a raw network failure with the NETWORK code (not cancelled/timeout)', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const result = await client.get('/users');
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value.isNetworkError()).toBe(true);
+      expect(result.value.isCancelled()).toBe(false);
+      expect(result.value.status).toBe(0);
+    }
+  });
+});
+
 describe('FetchClient URL composition', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   let client: FetchClient;

@@ -26,6 +26,7 @@ Feature code imports from `@/lib/utils/http` (universal) or `@/lib/utils/http/se
 - [Making requests](#making-requests)
 - [Typed queries and pagination](#typed-queries-and-pagination)
 - [Error handling](#error-handling)
+- [Cancellation and timeouts](#cancellation-and-timeouts)
 - [Authentication](#authentication)
 - [Server-side rendering](#server-side-rendering)
 - [Request correlation (X-Request-Id)](#request-correlation-x-request-id)
@@ -366,6 +367,65 @@ See the [`ApiException` reference](#apiexception) for the full surface.
 
 ---
 
+## Cancellation and timeouts
+
+Both clients fail fast and **distinguish three response-less failures** so the UI can react correctly — a request the user cancelled shouldn't render the same as a server that went dark.
+
+| Failure | `status` | `code` | Predicate |
+|---|---|---|---|
+| Caller aborted via `AbortSignal` | `0` | `ERR_CANCELLED` | `err.isCancelled()` |
+| Exceeded the timeout budget | `0` | `ERR_TIMEOUT` | `err.isTimeout()` |
+| Transport error (DNS, refused, offline) | `0` | `ERR_NETWORK` | `err.isNetworkError()` |
+
+`err.isClientFailure()` is `true` for all three (anything with `status === 0`).
+
+### Default timeout
+
+Every request has a default timeout of `DEFAULT_TIMEOUT_MS` (10s) — the fetch client and the axios client behave identically. Override per request, or pass `0` to disable it for a long-poll / SSE / large upload:
+
+```ts
+await fetchClient.get('/report', { timeout: 30_000 }); // 30s for this call
+await fetchClient.get('/events', { timeout: 0 });       // no timeout (streaming)
+```
+
+Set a client-wide default when creating a custom client: `createFetchClient({ ..., timeout: 30_000 })`.
+
+### Caller cancellation
+
+Pass your own `AbortSignal`; it's composed with the timeout via `AbortSignal.any`, so whichever fires first wins. Aborting yourself surfaces as `isCancelled()`; the timeout surfaces as `isTimeout()`.
+
+```ts
+const controller = new AbortController();
+const promise = fetchClient.get<User[]>('/users', { signal: controller.signal });
+
+controller.abort(); // e.g. component unmounted, user navigated away
+
+const result = await promise;
+if (result.isLeft() && result.value.isCancelled()) {
+  return; // expected — don't surface an error toast
+}
+```
+
+Typical React pattern — cancel the in-flight request on unmount:
+
+```tsx
+useEffect(() => {
+  const ac = new AbortController();
+  fetchClient.get<User>('/auth/me', { signal: ac.signal }).then((result) => {
+    if (result.isLeft()) {
+      if (result.value.isCancelled()) return; // unmounted — ignore
+      return showError(result.value);
+    }
+    setUser(result.value);
+  });
+  return () => ac.abort();
+}, []);
+```
+
+The signal and timeout both survive a 401 → refresh → retry: the retry gets a fresh timeout budget, and an already-aborted caller signal short-circuits it immediately.
+
+---
+
 ## Authentication
 
 ### Cookie-mode (default)
@@ -558,9 +618,9 @@ For a custom token store, implement the `TokenStore` interface (5 methods: `getA
 
 | Field / method | Type | Notes |
 |---|---|---|
-| `status` | `number` | HTTP status. `0` for network failures. |
+| `status` | `number` | HTTP status. `0` for response-less failures (cancel / timeout / network). |
 | `message` | `string` | Human-readable summary from the API. |
-| `code` | `string \| undefined` | Machine-readable code (e.g. `USER_NOT_FOUND`). |
+| `code` | `string \| undefined` | Machine-readable code (e.g. `USER_NOT_FOUND`, or `ERR_CANCELLED` / `ERR_TIMEOUT` / `ERR_NETWORK`). |
 | `errors` | `Array<Record<string, string>>` | Field-level validation errors. |
 | `data` | `Record<string, unknown>` | Arbitrary extra context. |
 | `path` | `string \| undefined` | Request path the API logged. |
@@ -569,7 +629,14 @@ For a custom token store, implement the `TokenStore` interface (5 methods: `getA
 | `getErrorMessage(key)` | `string \| undefined` | Field error message. |
 | `getErrorMessageIfExists(key)` | `string` | Field error or the general message. |
 | `getFieldErrors()` | `Record<string, string>` | All field errors flattened. |
+| `isCancelled()` | `boolean` | Request was aborted via an `AbortSignal`. |
+| `isTimeout()` | `boolean` | Request exceeded its timeout budget. |
+| `isNetworkError()` | `boolean` | Transport failed with no HTTP response. |
+| `isClientFailure()` | `boolean` | Any `status === 0` failure (cancel / timeout / network). |
 | `ApiException.fromResponse(body, fallbackStatus?)` | `ApiException` | Build from an API error envelope. |
+| `ApiException.cancelled(message?, stack?)` | `ApiException` | A cancelled-request exception. |
+| `ApiException.timeout(message?, stack?)` | `ApiException` | A timed-out-request exception. |
+| `ApiException.network(message?, stack?)` | `ApiException` | A network-failure exception. |
 | `ApiException.convertAny(error)` | `ApiException` | Defensive fallback for unknown error values. |
 
 ### Shared utilities

@@ -5,12 +5,12 @@ import axios, {
   type AxiosResponse,
 } from 'axios';
 
-import { API_RESPONSE_DATA_KEY, getApiBaseUrl } from '@/lib/config';
+import { API_RESPONSE_DATA_KEY, DEFAULT_TIMEOUT_MS, getApiBaseUrl } from '@/lib/config';
 import { ApiException } from '@/lib/errors';
 import type { QueryParams } from '@/types';
 import { type AxiosClientOptions, type DataKey, left, type ResultAsync, right } from '@/types';
 
-import { extractDataByKey, TokenRefreshManager } from '../client-utils';
+import { extractDataByKey, getRefreshManager } from '../client-utils';
 import { extractRequestIdFromHeaderRecord, parseApiError, toSearchParams } from '../shared';
 import { setupRequestInterceptor, setupResponseInterceptor } from './interceptors';
 import { refreshAuthToken } from './token-refresh';
@@ -18,15 +18,17 @@ import { refreshAuthToken } from './token-refresh';
 export class AxiosClient {
   private axios: AxiosInstance;
   private tokenStore: AxiosClientOptions['tokenStore'];
-  private refreshManager = new TokenRefreshManager();
+  private baseURL: string;
 
   constructor(options: AxiosClientOptions) {
     this.tokenStore = options.tokenStore;
+    this.baseURL = options?.baseURL || getApiBaseUrl();
 
     this.axios = axios.create({
-      baseURL: options?.baseURL || getApiBaseUrl(),
+      baseURL: this.baseURL,
       withCredentials: true,
-      timeout: 10000,
+      // Default timeout shared with the fetch client (axios native: 0 = off).
+      timeout: options.timeout ?? DEFAULT_TIMEOUT_MS,
       headers: {
         'Content-Type': 'application/json',
         ...options.defaultHeaders,
@@ -46,7 +48,11 @@ export class AxiosClient {
   }
 
   private async handleTokenRefresh(): Promise<string | null> {
-    return this.refreshManager.handleRefresh(() => refreshAuthToken(this.tokenStore, this.axios));
+    // Shared per-baseURL singleflight — see getRefreshManager. Ensures the
+    // fetch + axios clients never double-refresh the rotating refresh token.
+    return getRefreshManager(this.baseURL).handleRefresh(() =>
+      refreshAuthToken(this.tokenStore, this.axios),
+    );
   }
 
   private extractData<T>(res: AxiosResponse, dataKey?: DataKey): T {
@@ -55,15 +61,23 @@ export class AxiosClient {
 
   private toApiException(err: unknown): ApiException {
     if (err instanceof AxiosError) {
+      // No HTTP response → cancellation, timeout, or a raw network error.
+      // Map the first two to typed exceptions so callers can branch with
+      // `isCancelled()` / `isTimeout()`, mirroring the fetch client exactly.
+      if (!err.response) {
+        if (err.code === 'ERR_CANCELED') {
+          return ApiException.cancelled(err.message || undefined, err.stack);
+        }
+        if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+          return ApiException.timeout(err.message || undefined, err.stack);
+        }
+        return ApiException.network(err.message || 'Network error', err.stack);
+      }
+
       const responseRequestId = extractRequestIdFromHeaderRecord(
-        err.response?.headers as Record<string, unknown> | undefined,
+        err.response.headers as Record<string, unknown> | undefined,
       );
-      return parseApiError(
-        err.response?.data,
-        err.response?.status ?? 0,
-        responseRequestId,
-        err.stack,
-      );
+      return parseApiError(err.response.data, err.response.status, responseRequestId, err.stack);
     }
     return ApiException.convertAny(err);
   }

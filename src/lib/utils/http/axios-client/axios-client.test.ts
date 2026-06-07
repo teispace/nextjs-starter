@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { AxiosError } from 'axios';
+import { describe, expect, it, vi } from 'vitest';
 
+import { ApiException } from '@/lib/errors';
 import type { TokenStore } from '@/types';
 
 import { AxiosClient } from './axios-client';
@@ -55,5 +57,73 @@ describe('AxiosClient paramsSerializer (shared serialiser regression guard)', ()
 
   it('returns an empty string when every param is skipped', () => {
     expect(serialise({ page: undefined, search: '' })).toBe('');
+  });
+});
+
+describe('AxiosClient cancellation & timeout mapping', () => {
+  function makeClient() {
+    return new AxiosClient({
+      baseURL: 'https://api.example.com/api/v1',
+      tokenStore: makeTokenStore(),
+    });
+  }
+
+  /** Make the underlying axios instance's `get` reject with a given error. */
+  function stubGetReject(client: AxiosClient, error: unknown) {
+    const instance = (client as unknown as { axios: { get: unknown } }).axios;
+    vi.spyOn(instance as { get: () => Promise<unknown> }, 'get').mockRejectedValue(error);
+  }
+
+  it('uses the shared default timeout when none is provided', () => {
+    const client = makeClient();
+    const defaults = getAxiosDefaults(client) as unknown as { timeout: number };
+    expect(defaults.timeout).toBe(10_000);
+  });
+
+  it('respects an explicit timeout option (0 = disabled)', () => {
+    const client = new AxiosClient({
+      baseURL: 'https://api.example.com/api/v1',
+      tokenStore: makeTokenStore(),
+      timeout: 0,
+    });
+    const defaults = getAxiosDefaults(client) as unknown as { timeout: number };
+    expect(defaults.timeout).toBe(0);
+  });
+
+  it('maps ERR_CANCELED to a cancelled ApiException', async () => {
+    const client = makeClient();
+    stubGetReject(client, new AxiosError('canceled', 'ERR_CANCELED'));
+
+    const result = await client.get('/slow');
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value).toBeInstanceOf(ApiException);
+      expect(result.value.isCancelled()).toBe(true);
+      expect(result.value.status).toBe(0);
+    }
+  });
+
+  it('maps ECONNABORTED to a timeout ApiException', async () => {
+    const client = makeClient();
+    stubGetReject(client, new AxiosError('timeout of 10000ms exceeded', 'ECONNABORTED'));
+
+    const result = await client.get('/slow');
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value.isTimeout()).toBe(true);
+      expect(result.value.status).toBe(0);
+    }
+  });
+
+  it('maps a response-less error to a network ApiException', async () => {
+    const client = makeClient();
+    stubGetReject(client, new AxiosError('Network Error', 'ERR_NETWORK'));
+
+    const result = await client.get('/users');
+    expect(result.isLeft()).toBe(true);
+    if (result.isLeft()) {
+      expect(result.value.isNetworkError()).toBe(true);
+      expect(result.value.status).toBe(0);
+    }
   });
 });
