@@ -12,7 +12,7 @@ Production-ready App Router template. Next 16, React 19, TypeScript, Tailwind v4
 
 - **Linter/formatter**: Biome only. No ESLint, no Prettier. Config: `biome.json`. Run `yarn lint` / `yarn lint:fix` / `yarn format`. CI uses `yarn ci:check` (`biome ci`).
 - **Tests**: Vitest + React Testing Library + jsdom. Co-locate as `*.test.tsx` next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when the component needs Redux/i18n. Run with `yarn test` (or `yarn test:watch` / `yarn test:coverage`).
-- **Env vars**: Always import from `@/lib/env` (zod-validated at module load), never `process.env.NEXT_PUBLIC_*` directly. Add new vars to the schema in `src/lib/env/schema.ts`, the reader in `src/lib/env/index.ts`, AND `.env.example`.
+- **Env vars**: Always import from `@/lib/env` (validated + coerced at module load via `@teispace/env`, split server/client/shared with a client leak guard), never `process.env.NEXT_PUBLIC_*` directly. Add new vars in `src/lib/env/index.ts` — declare the coercer in the right group (`server` / `client` (must be `NEXT_PUBLIC_`-prefixed) / `shared`), add the key to `runtimeEnv`, AND `.env.example`. Reading a `server` var from a `'use client'` module throws by design.
 - **Logging**: Import `logger` from `@/lib/logger` (pino) — never `console.*`. Attach context via `logger.child({ requestId, userId })`. Sensitive keys (token, password, authorization) are auto-redacted.
 - **Routing interception**: `src/proxy.ts` (Next 16 replacement for `middleware.ts`). Do NOT create `middleware.ts`.
 - **i18n**: `next-intl`. All user-facing routes live under `src/app/[locale]/`. Locale config in `src/i18n/routing.ts`; request config in `src/i18n/request.ts`. Locale types in `src/types/i18n.ts`.
