@@ -1,4 +1,5 @@
 import { Environment } from '../enums';
+import { env } from '../env';
 
 /**
  * URI version prefix mounted by the API (`/api/v{n}`).
@@ -32,6 +33,8 @@ export const DEFAULT_TIMEOUT_MS = 10_000;
  */
 export const SAVE_AUTH_TOKENS = false;
 
-export const isProduction = process.env.NODE_ENV === Environment.PRODUCTION;
-export const isDevelopment = process.env.NODE_ENV === Environment.DEVELOPMENT;
-export const isTest = process.env.NODE_ENV === Environment.TEST;
+// Read NODE_ENV through the validated, typed env (shared group) so there's a
+// single source of truth rather than scattered raw `process.env` reads.
+export const isProduction = env.NODE_ENV === Environment.PRODUCTION;
+export const isDevelopment = env.NODE_ENV === Environment.DEVELOPMENT;
+export const isTest = env.NODE_ENV === Environment.TEST;
