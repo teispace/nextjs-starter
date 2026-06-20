@@ -1908,16 +1908,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@teispace/env@npm:^0.2.2":
+"@teispace/env@npm:^0.2.3":
   version: 0.2.3
   resolution: "@teispace/env@npm:0.2.3"
   checksum: 10c0/b8e8af6ec094ebfc5a7ad33f748ff387fedb7e0584af57fa1734ae4ff3f84747e0acdf4be7a4d33d119abd226e0affefe3c60aaa33b3d40b50722ece5be40a28
   languageName: node
   linkType: hard
 
-"@teispace/next-themes@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "@teispace/next-themes@npm:2.0.2"
+"@teispace/next-themes@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "@teispace/next-themes@npm:2.0.3"
   peerDependencies:
     next: ">=13.0.0"
     react: ">=18.0.0"
@@ -1925,7 +1925,7 @@ __metadata:
   peerDependenciesMeta:
     next:
       optional: true
-  checksum: 10c0/bd7553ee1fde63facf49d489df4ba5f1bd19ced6f91778e63dd64343f727875c1c5b631130d56362d2c24d98b338fe16a21a35705017648a79fba5c05c3e6ee9
+  checksum: 10c0/9c4b2656857e9f0d9a77d322b2ff48c4b75a58d8676634c7e36f31ad16ddf1e820d72e786e6c3641cee98e98315bcac8693252d2eb828a75e5fce929ad494e25
   languageName: node
   linkType: hard
 
@@ -5943,8 +5943,8 @@ __metadata:
     "@next/bundle-analyzer": "npm:^16.2.9"
     "@reduxjs/toolkit": "npm:^2.12.0"
     "@tailwindcss/postcss": "npm:^4.3.1"
-    "@teispace/env": "npm:^0.2.2"
-    "@teispace/next-themes": "npm:^2.0.2"
+    "@teispace/env": "npm:^0.2.3"
+    "@teispace/next-themes": "npm:^2.0.3"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/jest-dom": "npm:^6.9.1"
     "@testing-library/react": "npm:^16.3.2"

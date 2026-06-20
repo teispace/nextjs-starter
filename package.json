@@ -45,8 +45,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
-    "@teispace/env": "^0.2.2",
-    "@teispace/next-themes": "^2.0.2",
+    "@teispace/env": "^0.2.3",
+    "@teispace/next-themes": "^2.0.3",
     "axios": "^1.18.0",
     "next": "^16.2.9",
     "next-intl": "^4.13.0",
