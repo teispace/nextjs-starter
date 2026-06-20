@@ -13,6 +13,9 @@ vi.mock('@/lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
+// Placeholder for promise resolvers reassigned synchronously inside the executor.
+const noop = (..._args: unknown[]): void => undefined;
+
 describe('extractDataByKey', () => {
   it('returns the raw value when dataKey is null/undefined', () => {
     expect(extractDataByKey({ data: 1 }, null)).toEqual({ data: 1 });
@@ -56,7 +59,7 @@ describe('TokenRefreshManager', () => {
   });
 
   it('queues concurrent callers and drains them with the same token', async () => {
-    let resolveRefresh: (t: string | null) => void = () => {};
+    let resolveRefresh: (t: string | null) => void = noop;
     const refreshFn = vi.fn(
       () =>
         new Promise<string | null>((resolve) => {
@@ -80,7 +83,7 @@ describe('TokenRefreshManager', () => {
   });
 
   it('returns null when refreshFn returns null and drains queue with null', async () => {
-    let resolveRefresh: (t: string | null) => void = () => {};
+    let resolveRefresh: (t: string | null) => void = noop;
     const refreshFn = vi.fn(
       () =>
         new Promise<string | null>((resolve) => {
@@ -98,7 +101,7 @@ describe('TokenRefreshManager', () => {
   });
 
   it('drains queue with null when refreshFn throws', async () => {
-    let rejectRefresh: (reason: unknown) => void = () => {};
+    let rejectRefresh: (reason: unknown) => void = noop;
     const refreshFn = vi.fn(
       () =>
         new Promise<string | null>((_, reject) => {
@@ -206,7 +209,7 @@ describe('getRefreshManager (shared per-baseURL singleflight)', () => {
     // Two "clients" (fetch + axios) resolving 401s concurrently against the
     // same upstream must trigger exactly ONE refresh — not one each — or the
     // rotating refresh token would be double-spent.
-    let resolveRefresh: (t: string | null) => void = () => {};
+    let resolveRefresh: (t: string | null) => void = noop;
     const refreshFn = vi.fn(
       () =>
         new Promise<string | null>((resolve) => {
