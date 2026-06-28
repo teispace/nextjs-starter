@@ -2,8 +2,8 @@ import { ApiException } from '@/lib/errors';
 
 import { type Either, Left, Right } from './either';
 
-export type Result<T, E = Error> = Either<E, T>;
-export type ResultVoid<E = Error> = Either<E, void>;
+export type Result<T, E = ApiException> = Either<E, T>;
+export type ResultVoid<E = ApiException> = Either<E, void>;
 export type ResultAsync<T, E = ApiException> = Promise<Either<E, T>>;
 
 export const right = <T>(value: T): Right<T> => Right.of(value);

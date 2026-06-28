@@ -6,6 +6,7 @@ export const appLocales: AppLocale[] = [
     locale: 'en',
     flag: '🇺🇸',
     country: 'United States',
+    ogLocale: 'en_US',
   },
 ];
 

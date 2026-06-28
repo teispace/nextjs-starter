@@ -148,7 +148,9 @@ export class ApiException extends Error {
     if (!this.errors) return result;
 
     for (const err of this.errors) {
-      const [key, value] = Object.entries(err)[0];
+      const entry = Object.entries(err)[0];
+      if (!entry) continue;
+      const [key, value] = entry;
       result[key] = String(value);
     }
 

@@ -8,7 +8,12 @@ import type {
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
 import type { CookieResolver, TokenStore } from '@/types';
 
-import { generateRequestId, isValidRequestId, REQUEST_ID_HEADER } from '../shared';
+import {
+  generateRequestId,
+  isValidRequestId,
+  REQUEST_ID_HEADER,
+  resolvesToUpstream,
+} from '../shared';
 
 function readHeaderInsensitive(
   headers: InternalAxiosRequestConfig['headers'],
@@ -20,6 +25,15 @@ function readHeaderInsensitive(
     if (key.toLowerCase() === lower && typeof value === 'string') return value;
   }
   return undefined;
+}
+
+/**
+ * Whether the resolved request target is the configured upstream — gates bearer
+ * attachment so an absolute `url` overriding `baseURL` can't leak the token
+ * cross-origin. A bare relative `url` always resolves against `baseURL`.
+ */
+function attachesAuth(config: { baseURL?: string; url?: string }): boolean {
+  return resolvesToUpstream(config.url ?? '', config.baseURL ?? '');
 }
 
 export function setupRequestInterceptor(
@@ -49,7 +63,7 @@ export function setupRequestInterceptor(
         return config;
       }
 
-      if (SAVE_AUTH_TOKENS) {
+      if (SAVE_AUTH_TOKENS && attachesAuth(config)) {
         const token = await tokenStore.getAccessToken();
         if (token) {
           config.headers.set('Authorization', `Bearer ${token}`);
@@ -84,13 +98,17 @@ export function setupResponseInterceptor(
         const token = await handleTokenRefresh();
 
         if (!token) {
-          await tokenStore.clear();
+          // Only bearer mode has a token store to clear (see fetch interceptor).
+          if (SAVE_AUTH_TOKENS) await tokenStore.clear();
           onUnauthorized?.();
           return Promise.reject(error);
         }
 
-        originalRequest.headers = originalRequest.headers ?? {};
-        (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+        // Don't replay the refreshed token onto a cross-origin retry target.
+        if (attachesAuth(originalRequest)) {
+          originalRequest.headers = originalRequest.headers ?? {};
+          (originalRequest.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+        }
 
         return axiosInstance(originalRequest);
       }

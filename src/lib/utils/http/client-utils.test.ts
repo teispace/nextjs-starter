@@ -133,6 +133,29 @@ describe('TokenRefreshManager', () => {
     expect(refreshFn).toHaveBeenCalledTimes(3); // 4th call short-circuits before invoking
   });
 
+  it('stays hard-blocked after tripping the guard until a full cooldown elapses', async () => {
+    const refreshFn = vi.fn().mockResolvedValue('t');
+
+    // Trip the guard (4th call within cooldown).
+    await manager.handleRefresh(refreshFn);
+    await manager.handleRefresh(refreshFn);
+    await manager.handleRefresh(refreshFn);
+    await manager.handleRefresh(refreshFn); // trips → blockedUntil set
+
+    // An immediately-following call must NOT re-arm a fresh burst: it returns
+    // null without invoking refreshFn, even though a brand-new window would
+    // otherwise allow it.
+    const stillBlocked = await manager.handleRefresh(refreshFn);
+    expect(stillBlocked).toBeNull();
+    expect(refreshFn).toHaveBeenCalledTimes(3); // no new invocation while blocked
+
+    // After a full cooldown the block lifts and refreshes resume.
+    vi.setSystemTime(Date.now() + TOKEN_REFRESH_CONFIG.COOLDOWN_MS + 100);
+    const result = await manager.handleRefresh(refreshFn);
+    expect(result).toBe('t');
+    expect(refreshFn).toHaveBeenCalledTimes(4);
+  });
+
   it('resets the attempt counter after cooldown elapses', async () => {
     const refreshFn = vi.fn().mockResolvedValue('t');
 

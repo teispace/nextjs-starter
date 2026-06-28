@@ -185,6 +185,79 @@ describe('WsClient', () => {
 
       expect(events[0].reconnectable).toBe(true);
     });
+
+    it('treats a malformed force-disconnect payload as fatal (no emit, reconnection disabled)', async () => {
+      const client = new WsClient();
+      const events: unknown[] = [];
+      client.on('forceDisconnect', (p) => events.push(p));
+
+      await client.connect();
+      fakeSocket.simulateConnect();
+
+      // Unknown reason — fails the zod enum.
+      fakeSocket.simulateServerEvent('auth:force:disconnect', { reason: 'not_a_real_reason' });
+
+      expect(events).toHaveLength(0);
+      expect(fakeSocket.io.opts.reconnection).toBe(false);
+    });
+  });
+
+  describe('onEvent buffering (lazy connect)', () => {
+    it('does not throw when called before the socket exists, and wires the buffered event on connect', async () => {
+      const client = new WsClient();
+      const handler = vi.fn();
+
+      // Subscribe BEFORE connect() — the socket is still null at this point.
+      expect(() => client.onEvent('presence:online', handler)).not.toThrow();
+
+      await client.connect();
+      fakeSocket.simulateConnect();
+      fakeSocket.simulateServerEvent('presence:online', { userId: 'u1', timestamp: 1 });
+
+      expect(handler).toHaveBeenCalledWith({ userId: 'u1', timestamp: 1 });
+    });
+
+    it('unsubscribing a buffered event before connect prevents it from wiring', async () => {
+      const client = new WsClient();
+      const handler = vi.fn();
+
+      const unsubscribe = client.onEvent('presence:online', handler);
+      unsubscribe();
+
+      await client.connect();
+      fakeSocket.simulateConnect();
+      fakeSocket.simulateServerEvent('presence:online', { userId: 'u1', timestamp: 1 });
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('socket teardown', () => {
+    it('clears both Socket- and Manager-level listeners on disconnect', async () => {
+      const client = new WsClient();
+      await client.connect();
+      fakeSocket.simulateConnect();
+
+      client.disconnect();
+
+      expect(fakeSocket.removeAllListeners).toHaveBeenCalled();
+      expect(fakeSocket.io.removeAllListeners).toHaveBeenCalled();
+    });
+
+    it('tears down the previous socket before building a new one on reconnect', async () => {
+      const client = new WsClient();
+      await client.connect();
+      const firstSocket = fakeSocket;
+      fakeSocket.simulateConnect();
+
+      client.disconnect();
+      // New socket for the next connect.
+      fakeSocket = new FakeSocket();
+      await client.connect();
+
+      expect(firstSocket.removeAllListeners).toHaveBeenCalled();
+      expect(firstSocket.io.removeAllListeners).toHaveBeenCalled();
+    });
   });
 
   describe('error pass-through', () => {

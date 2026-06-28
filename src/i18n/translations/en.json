@@ -8,5 +8,16 @@
     "decrement": "Decrement",
     "reset": "Reset",
     "currentCount": "Current Count: {count}"
+  },
+  "Error": {
+    "title": "Something went wrong",
+    "generic": "An unexpected error occurred.",
+    "retry": "Try again"
+  },
+  "NotFound": {
+    "code": "404",
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or has been moved.",
+    "goHome": "Go home"
   }
 }

@@ -225,6 +225,8 @@ describe('FetchClient 401 → refresh → retry lifecycle', () => {
     const result = await client.get('/me');
 
     expect(refreshSpy).toHaveBeenCalledOnce();
+    // Vitest runs with NODE_ENV=test → bearer mode (SAVE_AUTH_TOKENS=true), so
+    // the failed refresh clears the token store.
     expect(tokenStore.clear).toHaveBeenCalledOnce();
     expect(onUnauthorized).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledTimes(1); // no retry

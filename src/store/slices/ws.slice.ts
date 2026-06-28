@@ -62,6 +62,11 @@ const wsSlice = createSlice({
         state.lastError = null;
         state.forceDisconnectReason = null;
         state.reconnectable = null;
+      } else if (action.payload.status === 'disconnected') {
+        // Don't leave a stale "connected since" timestamp once the socket is
+        // down. 'reconnecting' keeps it — a transient blip during an
+        // established session reasonably preserves the original uptime.
+        state.connectedAt = null;
       }
     },
     socketIdChanged: (state, action: PayloadAction<string | null>) => {

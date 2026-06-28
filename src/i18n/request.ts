@@ -7,7 +7,13 @@ import { routing } from './routing';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;
-  const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale;
+  // Fall back to the operator-configured DEFAULT_LOCALE when it's a supported
+  // locale, otherwise to the routing default — so the env knob actually takes
+  // effect instead of being silently ignored.
+  const fallback = hasLocale(routing.locales, env.DEFAULT_LOCALE)
+    ? env.DEFAULT_LOCALE
+    : routing.defaultLocale;
+  const locale = hasLocale(routing.locales, requested) ? requested : fallback;
 
   return {
     locale,

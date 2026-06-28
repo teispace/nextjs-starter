@@ -17,6 +17,7 @@ import type {
   WsForceDisconnectPayload,
 } from '../types';
 import { isReconnectableReason } from '../types';
+import { wsErrorPayloadSchema, wsForceDisconnectPayloadSchema } from '../types/payloads.schema';
 import { LifecycleEmitter } from './lifecycle-emitter';
 import type { WsClientOptions, WsConnectOptions, WsStatus } from './types';
 
@@ -45,6 +46,15 @@ export class WsClient {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   /** Set when force-disconnect tells us not to reconnect. Cleared on next explicit connect(). */
   private fatalDisconnect = false;
+  /**
+   * Subscriptions registered before the socket exists (lazy connect is async,
+   * so `onEvent` can run before `connect()` finishes building the socket). They
+   * are flushed onto the socket the moment it's created.
+   */
+  private readonly pendingSubscriptions = new Set<{
+    event: keyof ServerToClientEvents;
+    handler: ServerToClientEvents[keyof ServerToClientEvents];
+  }>();
 
   constructor(options: WsClientOptions = {}) {
     this.options = options;
@@ -84,13 +94,13 @@ export class WsClient {
     this.setStatus('connecting');
 
     const anonymous = options.anonymous ?? false;
-    const auth = await buildHandshakeAuth({ anonymous });
+    const initialAuth = await buildHandshakeAuth({ anonymous });
 
     // Cookie mode (SAVE_AUTH_TOKENS=false) is always optimistic — the browser
     // jar carries the access cookie automatically and the server rejects if
     // it's missing. Bearer mode with no stored token (auth === undefined and
     // not anonymous) is the one combination that should fail fast.
-    if (!anonymous && SAVE_AUTH_TOKENS && !auth) {
+    if (!anonymous && SAVE_AUTH_TOKENS && !initialAuth) {
       this.setStatus('disconnected');
       this.emitter.emit('error', {
         code: WS_LOCAL_ERROR_CODES.AUTH_REQUIRED,
@@ -107,35 +117,48 @@ export class WsClient {
       reconnectionDelay: WS_RECONNECTION_DELAY_MIN_MS,
       reconnectionDelayMax: WS_RECONNECTION_DELAY_MAX_MS,
       reconnectionAttempts: Number.POSITIVE_INFINITY,
-      auth,
+      // Callback form re-reads the token on every (re)connect handshake, so a
+      // bearer token rotated by the HTTP layer is picked up instead of replaying
+      // the stale one captured at first connect. No-op for cookie/anonymous
+      // modes (buildHandshakeAuth returns undefined → empty payload; the browser
+      // jar still attaches cookies).
+      auth: async (cb: (data: Record<string, unknown>) => void) => {
+        cb((await buildHandshakeAuth({ anonymous })) ?? {});
+      },
       ...this.options.socketOptions,
     };
 
+    this.teardownSocket();
     this.socket = io(url, socketOpts) as TypedSocket;
+    this.flushPendingSubscriptions(this.socket);
     this.wireSocket(this.socket);
   }
 
   /**
-   * Close the connection. Use for logout flows where the caller wants to
-   * stop reconnection too — pass `{ permanent: true }` to also clear the
-   * underlying Manager so subsequent `connect()` builds a fresh one.
+   * Close the connection. The socket and all its listeners (Socket- and
+   * Manager-level) are always torn down so a later `connect()` — which rebuilds
+   * via `io()` regardless — can never leave an orphaned socket still holding
+   * listeners or attempting reconnection. `permanent` is retained for API
+   * compatibility; teardown is unconditional now.
    */
-  disconnect(options: { permanent?: boolean } = {}): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-    if (!this.socket) {
-      this.setStatus('disconnected');
-      return;
-    }
-
-    this.socket.disconnect();
-    if (options.permanent) {
-      this.socket.removeAllListeners();
-      this.socket = null;
-    }
+  disconnect(_options: { permanent?: boolean } = {}): void {
+    this.stopHeartbeat();
+    this.teardownSocket();
     this.setStatus('disconnected');
+  }
+
+  /**
+   * Drop the current socket and every listener it owns. Socket-level listeners
+   * live on the Socket emitter (`removeAllListeners`); the `connect`/reconnect
+   * handlers wired via `socket.io.on(...)` live on the Manager, so both must be
+   * cleared to avoid leaking listeners across connect/disconnect cycles.
+   */
+  private teardownSocket(): void {
+    if (!this.socket) return;
+    this.socket.removeAllListeners();
+    this.socket.io.removeAllListeners();
+    this.socket.disconnect();
+    this.socket = null;
   }
 
   // ── Event subscription (typed pass-through to socket.io-client) ────────────
@@ -145,14 +168,19 @@ export class WsClient {
     event: E,
     handler: ServerToClientEvents[E],
   ): () => void {
-    if (!this.socket) {
-      // Buffer would add complexity; instead require connect() first.
-      // The hooks call connect() lazily before subscribing, so feature
-      // code never hits this path.
-      throw new Error('[ws] onEvent() called before connect(). Call connect() first.');
+    // Lazy connect is async, so the socket may not exist yet on the first
+    // subscriber. Buffer until connect() builds it, then flush.
+    const entry = { event, handler } as {
+      event: keyof ServerToClientEvents;
+      handler: ServerToClientEvents[keyof ServerToClientEvents];
+    };
+    if (this.socket) {
+      this.socket.on(event, handler as never);
+    } else {
+      this.pendingSubscriptions.add(entry);
     }
-    this.socket.on(event, handler as never);
     return () => {
+      this.pendingSubscriptions.delete(entry);
       this.socket?.off(event, handler as never);
     };
   }
@@ -170,6 +198,22 @@ export class WsClient {
   }
 
   // ── Internals ───────────────────────────────────────────────────────────────
+
+  private emitError(payload: WsErrorPayload): void {
+    const parsed = wsErrorPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      logger.warn({ event: 'error' }, 'WS dropped malformed payload');
+      return;
+    }
+    this.emitter.emit('error', parsed.data);
+  }
+
+  private flushPendingSubscriptions(socket: TypedSocket): void {
+    for (const { event, handler } of this.pendingSubscriptions) {
+      socket.on(event as never, handler as never);
+    }
+    this.pendingSubscriptions.clear();
+  }
 
   private wireSocket(socket: TypedSocket): void {
     socket.on('connect', () => {
@@ -206,22 +250,31 @@ export class WsClient {
     });
 
     socket.on('error', (payload: WsErrorPayload) => {
-      this.emitter.emit('error', payload);
+      this.emitError(payload);
     });
 
     socket.on('auth:error', (payload: WsErrorPayload) => {
-      this.emitter.emit('error', payload);
+      this.emitError(payload);
     });
 
     socket.on('auth:force:disconnect', (payload: WsForceDisconnectPayload) => {
+      const parsed = wsForceDisconnectPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        // Malformed force-disconnect → treat as fatal (non-reconnectable),
+        // the safe default, rather than guessing.
+        logger.warn({ event: 'auth:force:disconnect' }, 'WS dropped malformed payload');
+        this.fatalDisconnect = true;
+        if (this.socket) this.socket.io.opts.reconnection = false;
+        return;
+      }
       // Trust the server's `reconnectable` flag; the helper is only a
       // defensive cross-check for older servers that don't stamp it.
-      const reconnectable = payload.reconnectable ?? isReconnectableReason(payload.reason);
+      const reconnectable = parsed.data.reconnectable ?? isReconnectableReason(parsed.data.reason);
       if (!reconnectable) {
         this.fatalDisconnect = true;
         if (this.socket) this.socket.io.opts.reconnection = false;
       }
-      this.emitter.emit('forceDisconnect', { ...payload, reconnectable });
+      this.emitter.emit('forceDisconnect', { reason: parsed.data.reason, reconnectable });
     });
 
     socket.on('pong', (payload) => {

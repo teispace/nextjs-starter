@@ -153,6 +153,23 @@ describe('applyRequestInterceptors', () => {
     const headers = out.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer token-from-refresh');
   });
+
+  it('does NOT attach a bearer token when attachAuth is false (cross-origin request)', async () => {
+    SAVE_AUTH_TOKENS.value = true;
+    const tokenStore = makeTokenStore({
+      getAccessToken: vi.fn().mockResolvedValue('stored-token'),
+    });
+    const out = await applyRequestInterceptors(
+      { _authToken: 'fresh-token' },
+      tokenStore,
+      {},
+      undefined,
+      false,
+    );
+    const headers = out.headers as Record<string, string>;
+    expect(headers.Authorization).toBeUndefined();
+    expect(tokenStore.getAccessToken).not.toHaveBeenCalled();
+  });
 });
 
 describe('applyResponseInterceptors', () => {
@@ -209,7 +226,26 @@ describe('applyResponseInterceptors', () => {
     expect(tokenStore.clear).not.toHaveBeenCalled();
   });
 
-  it('on 401 + refresh failure: clears tokens, calls onUnauthorized, returns shouldReject', async () => {
+  it('on 401 + refresh failure (cookie mode): calls onUnauthorized but does NOT clear the token store', async () => {
+    SAVE_AUTH_TOKENS.value = false;
+    const handleRefresh = vi.fn().mockResolvedValue(null);
+    const onUnauthorized = vi.fn();
+    const tokenStore = makeTokenStore();
+    const result = await applyResponseInterceptors(
+      new Response('', { status: 401 }),
+      null,
+      {},
+      tokenStore,
+      handleRefresh,
+      onUnauthorized,
+    );
+    expect(result).toEqual({ shouldRetry: false, shouldReject: true });
+    expect(tokenStore.clear).not.toHaveBeenCalled();
+    expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  it('on 401 + refresh failure (bearer mode): clears tokens and calls onUnauthorized', async () => {
+    SAVE_AUTH_TOKENS.value = true;
     const handleRefresh = vi.fn().mockResolvedValue(null);
     const onUnauthorized = vi.fn();
     const tokenStore = makeTokenStore();

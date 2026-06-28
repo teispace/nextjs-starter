@@ -16,6 +16,7 @@ import {
   buildAbortSignal,
   extractRequestIdFromHeaders,
   parseApiError,
+  resolvesToUpstream,
   toSearchParams,
 } from '../shared';
 import { applyRequestInterceptors, applyResponseInterceptors } from './interceptors';
@@ -122,6 +123,7 @@ export class FetchClient {
         this.tokenStore,
         this.defaultOptions,
         this.cookieResolver,
+        resolvesToUpstream(fullURL, this.baseURL),
       );
 
       const response = await fetch(fullURL, { ...interceptedOptions, signal });
@@ -164,7 +166,10 @@ export class FetchClient {
 
       return right(extractDataByKey<T>(responseData, dataKey));
     } catch (error) {
-      return left(this.toApiException(error, undefined, undefined, isTimeout()));
+      // When the caller aborted, classify as cancellation even if the timeout
+      // also fired in the same tick — a genuine user-abort wins the tie.
+      const timedOut = isTimeout() && !(callerSignal?.aborted ?? false);
+      return left(this.toApiException(error, undefined, undefined, timedOut));
     }
   }
 
