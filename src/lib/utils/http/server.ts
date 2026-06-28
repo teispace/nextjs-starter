@@ -35,10 +35,41 @@ import { secureStorageTokenStore } from './token-store';
  * import { fetchClient } from '@/lib/utils/http';  // browser cookie jar
  * ```
  */
+// RFC 6265 cookie-name token chars; anything else can't legally be a name.
+const COOKIE_NAME_RE = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+// Separators/quote chars that could splice extra cookies into the forwarded
+// header. Control chars (incl. CR/LF) are checked separately by char code so
+// the regex literal stays control-character-free.
+const COOKIE_VALUE_SEPARATOR_RE = /["\\;,\s]/;
+
+function hasIllegalCookieValueChar(value: string): boolean {
+  if (COOKIE_VALUE_SEPARATOR_RE.test(value)) return true;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    // C0 control chars (0x00–0x1F) and DEL (0x7F). `next/headers` returns
+    // already-decoded values, so a malformed one would otherwise corrupt the
+    // forwarded header.
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+/**
+ * Forward only these cookie names to the upstream API. Leave empty to forward
+ * all (current behavior). Populate with your API's auth cookie names to avoid
+ * over-forwarding unrelated (e.g. analytics) cookies across origins.
+ */
+const FORWARD_COOKIE_ALLOWLIST: readonly string[] = [];
+
 async function readServerCookieHeader(): Promise<string | undefined> {
   const all = (await cookies()).getAll();
-  if (all.length === 0) return undefined;
-  return all.map((c) => `${c.name}=${c.value}`).join('; ');
+  const allow = new Set(FORWARD_COOKIE_ALLOWLIST);
+  const pairs = all.filter((c) => {
+    if (allow.size > 0 && !allow.has(c.name)) return false;
+    return COOKIE_NAME_RE.test(c.name) && !hasIllegalCookieValueChar(c.value);
+  });
+  if (pairs.length === 0) return undefined;
+  return pairs.map((c) => `${c.name}=${c.value}`).join('; ');
 }
 
 export const fetchClient = createFetchClient({

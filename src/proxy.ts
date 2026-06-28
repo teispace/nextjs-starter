@@ -3,10 +3,12 @@ import createMiddleware from 'next-intl/middleware';
 
 import { routing } from './i18n/routing';
 
+// Build the middleware once at module load (not per request) — the factory does
+// non-trivial locale-matcher/route-parsing setup. Matches next-intl's docs.
+const handleI18nRouting = createMiddleware(routing);
+
 export function proxy(request: NextRequest) {
-  const handleI18nRouting = createMiddleware(routing);
-  const response = handleI18nRouting(request);
-  return response;
+  return handleI18nRouting(request);
 }
 
 export const config = {

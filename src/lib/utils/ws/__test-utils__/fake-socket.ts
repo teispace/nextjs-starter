@@ -27,6 +27,10 @@ export class FakeSocket {
       this.managerListeners.get(event)?.delete(handler);
       return this.io;
     }),
+    removeAllListeners: vi.fn(() => {
+      this.managerListeners.clear();
+      return this.io;
+    }),
     opts: { reconnection: true } as { reconnection: boolean },
   };
 

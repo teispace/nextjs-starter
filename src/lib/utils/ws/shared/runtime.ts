@@ -10,11 +10,10 @@
  *
  * Use `ensureBrowser(method)` at every public client-side entry point.
  */
+import { isBrowser, isServer } from '../../runtime';
 import { WS_LOCAL_ERROR_CODES } from '../constants';
 
-export const isBrowser = (): boolean => typeof window !== 'undefined';
-
-export const isServer = (): boolean => !isBrowser();
+export { isBrowser, isServer };
 
 export class WsSsrError extends Error {
   readonly code = WS_LOCAL_ERROR_CODES.SSR_BLOCKED;

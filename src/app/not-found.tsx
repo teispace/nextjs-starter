@@ -1,5 +1,9 @@
 import Link from 'next/link';
 
+// Provider-free global 404 fallback for paths outside [locale]: it renders its
+// own <html>/<body> with inline styles and uses next/link (not @/i18n/navigation)
+// because it runs without the locale layout's i18n/theme providers. The in-app
+// localized 404 lives in src/app/[locale]/not-found.tsx.
 export default function NotFound() {
   return (
     <html lang="en">

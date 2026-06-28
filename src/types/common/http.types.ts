@@ -103,4 +103,10 @@ export interface RefreshState {
   queue: Array<(token: string | null) => void>;
   attempts: number;
   lastAttempt: number;
+  /**
+   * Unix ms until which refreshes are hard-blocked after the loop guard trips.
+   * `0` means not blocked. Keeps a server that 401s every refresh from
+   * re-arming a fresh burst the instant the previous one is capped.
+   */
+  blockedUntil: number;
 }

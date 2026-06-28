@@ -1,5 +1,5 @@
 import { SAVE_AUTH_TOKENS } from '@/lib/config';
-import type { ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
+import type { CookieResolver, ExtendedRequestInit, InterceptorResult, TokenStore } from '@/types';
 
 import { generateRequestId, isValidRequestId, REQUEST_ID_HEADER } from '../shared';
 
@@ -11,23 +11,12 @@ function hasHeader(headers: HeadersInit | undefined, name: string): boolean {
   return Object.keys(headers).some((k) => k.toLowerCase() === lower);
 }
 
-/**
- * Optional async callback that returns a `Cookie` header value to inject
- * into the outgoing request. Returns `undefined` to skip injection.
- *
- * The universal `fetchClient` never passes one of these — cookies flow
- * via the browser jar with `credentials: 'include'`. The server-only
- * client (`@/lib/utils/http/server`) passes a callback that reads
- * `next/headers`, which is how SSR requests carry the user's cookies to
- * the upstream API.
- */
-export type CookieResolver = () => Promise<string | undefined>;
-
 export async function applyRequestInterceptors(
   options: ExtendedRequestInit,
   tokenStore: TokenStore,
   defaultOptions: RequestInit,
   resolveCookie?: CookieResolver,
+  attachAuth = true,
 ): Promise<RequestInit> {
   const mergedHeaders: Record<string, string> = {
     ...(defaultOptions.headers as Record<string, string> | undefined),
@@ -60,14 +49,19 @@ export async function applyRequestInterceptors(
     return mergedOptions;
   }
 
-  // Token attached directly by a retry takes precedence over any stored token,
-  // since SAVE_AUTH_TOKENS may be false (cookie-based auth) but the refresh
-  // endpoint still returns a fresh access token we need to forward.
-  const directToken = options._authToken;
-  const token = directToken ?? (SAVE_AUTH_TOKENS ? await tokenStore.getAccessToken() : null);
+  // Never attach a bearer token to a cross-origin request — unlike the cookie
+  // jar, a manual Authorization header has no same-origin protection and would
+  // leak the access token to a foreign host.
+  if (attachAuth) {
+    // Token attached directly by a retry takes precedence over any stored token,
+    // since SAVE_AUTH_TOKENS may be false (cookie-based auth) but the refresh
+    // endpoint still returns a fresh access token we need to forward.
+    const directToken = options._authToken;
+    const token = directToken ?? (SAVE_AUTH_TOKENS ? await tokenStore.getAccessToken() : null);
 
-  if (token) {
-    mergedHeaders.Authorization = `Bearer ${token}`;
+    if (token) {
+      mergedHeaders.Authorization = `Bearer ${token}`;
+    }
   }
 
   return mergedOptions;
@@ -91,7 +85,11 @@ export async function applyResponseInterceptors(
   const newToken = await handleTokenRefresh();
 
   if (!newToken) {
-    await tokenStore.clear();
+    // Only the bearer/localStorage token store has anything to clear. In cookie
+    // mode the store is inert (and on the server `react-secure-storage` doesn't
+    // exist), so skip the no-op side effect. `onUnauthorized` stays
+    // unconditional — it's the redirect, already a server-side no-op.
+    if (SAVE_AUTH_TOKENS) await tokenStore.clear();
     onUnauthorized?.();
 
     return {

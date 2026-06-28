@@ -27,14 +27,23 @@ export const SENSITIVE_KEYS = [
 export const SENSITIVE_HEADERS = ['authorization', 'cookie', 'set-cookie'];
 
 /**
- * Pino redaction paths. Covers:
- *   - `*.<sensitiveKey>` at any nesting
- *   - `req.headers["<sensitiveHeader>"]` for HTTP request logs
- *   - `req.body.<sensitiveKey>` and `req.body.*.<sensitiveKey>` one level deep
+ * Pino redaction paths. Pino's single `*` wildcard matches exactly one level
+ * (it is NOT recursive), and `*.<key>` does NOT match a key at the root — so
+ * each shape that can carry a secret is listed explicitly:
+ *   - `<sensitiveKey>` at the root: `logger.info({ token })`
+ *   - `*.<sensitiveKey>` one level deep: `{ user: { token } }`
+ *   - `<sensitiveHeader>` headers at the root (`{ headers: { authorization } }`)
+ *     and one parent deep (`req.headers` / `res.headers` / `response.headers`)
+ *   - `req.body.<sensitiveKey>` and `req.body.*.<sensitiveKey>` for HTTP logs
+ *
+ * Arbitrarily deep nesting (`{ a: { b: { token } } }`) is not covered — keep
+ * log surfaces shallow (scalars, `{ err }`, explicit child bindings).
  */
 export const SENSITIVE_REDACTION_PATHS = [
+  ...SENSITIVE_KEYS,
   ...SENSITIVE_KEYS.map((key) => `*.${key}`),
-  ...SENSITIVE_HEADERS.map((header) => `req.headers["${header}"]`),
+  ...SENSITIVE_HEADERS.map((header) => `headers["${header}"]`),
+  ...SENSITIVE_HEADERS.map((header) => `*.headers["${header}"]`),
   ...SENSITIVE_KEYS.map((key) => `req.body.${key}`),
   ...SENSITIVE_KEYS.map((key) => `req.body.*.${key}`),
 ];

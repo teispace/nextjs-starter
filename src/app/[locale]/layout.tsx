@@ -63,6 +63,9 @@ export default async function RootLayout({
 
   setRequestLocale(locale);
 
+  // Hydrates the entire message catalog — the intended next-intl default and
+  // fine for a starter. Apps with large catalogs should scope messages per route
+  // segment (multiple NextIntlClientProvider boundaries) to trim the payload.
   const [messages, timeZone] = await Promise.all([getMessages(), getTimeZone()]);
 
   return (

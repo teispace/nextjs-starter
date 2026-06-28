@@ -14,3 +14,5 @@ export {
 export { parseApiError } from './response-parser';
 export { isBrowser, isServer } from './runtime';
 export { toSearchParams } from './search-params';
+export { rotateTokens } from './token-rotation';
+export { resolvesToUpstream } from './upstream-origin';

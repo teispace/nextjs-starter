@@ -29,6 +29,7 @@ export class TokenRefreshManager {
     queue: [],
     attempts: 0,
     lastAttempt: 0,
+    blockedUntil: 0,
   };
 
   async handleRefresh(refreshFn: () => Promise<string | null>): Promise<string | null> {
@@ -37,11 +38,20 @@ export class TokenRefreshManager {
     }
 
     const now = Date.now();
+
+    // Hard stop: once the loop guard trips, refuse every refresh until a full
+    // cooldown elapses. Without this the attempt counter re-arms instantly and
+    // a server that 401s every refresh produces unbounded repeating bursts.
+    if (now < this.state.blockedUntil) {
+      return null;
+    }
+
     if (now - this.state.lastAttempt < TOKEN_REFRESH_CONFIG.COOLDOWN_MS) {
       this.state.attempts++;
       if (this.state.attempts >= TOKEN_REFRESH_CONFIG.MAX_ATTEMPTS) {
         logger.error('Max refresh attempts reached. Stopping to prevent infinite loop.');
         this.state.attempts = 0;
+        this.state.blockedUntil = now + TOKEN_REFRESH_CONFIG.COOLDOWN_MS;
         return null;
       }
     } else {
