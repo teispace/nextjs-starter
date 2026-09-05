@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/teispace/nextjs-starter#readme",
   "private": true,
+  "packageManager": "yarn@4.18.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/teispace/nextjs-starter.git"
@@ -48,7 +49,7 @@
     "@teispace/env": "^0.2.3",
     "@teispace/next-themes": "^2.0.3",
     "axios": "^1.18.0",
-    "next": "^16.2.9",
+    "next": "^16.3.4",
     "next-intl": "^4.13.0",
     "pino": "^10.3.1",
     "react": "^19.2.7",
@@ -65,7 +66,7 @@
     "@biomejs/biome": "^2.5.0",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
-    "@next/bundle-analyzer": "^16.2.9",
+    "@next/bundle-analyzer": "^16.3.4",
     "@tailwindcss/postcss": "^4.3.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -75,6 +76,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
     "commitizen": "^4.3.2",
     "cz-conventional-changelog": "^3.3.0",

@@ -8,7 +8,7 @@ import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 
 import { routing } from '@/i18n/routing';
 import { getLocaleDirection } from '@/lib/config/app-locales';
-import { APP_NAME, APP_URL } from '@/lib/config/seo';
+import { APP_NAME, APP_URL, DEFAULT_OG_IMAGE_PATH } from '@/lib/config/seo';
 // Regression sentinel — see file comment for what this guards.
 import { HttpClientBundleSentinel } from '@/lib/utils/http/__bundle-sentinel__/client-bundle-sentinel';
 import { RootProvider } from '@/providers';
@@ -31,9 +31,11 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: APP_NAME,
     locale: 'en_US',
+    images: [{ url: DEFAULT_OG_IMAGE_PATH, width: 1200, height: 630, alt: APP_NAME }],
   },
   twitter: {
     card: 'summary_large_image',
+    images: [DEFAULT_OG_IMAGE_PATH],
   },
   robots: {
     index: true,

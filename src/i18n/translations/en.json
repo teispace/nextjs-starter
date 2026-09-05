@@ -14,6 +14,11 @@
     "generic": "An unexpected error occurred.",
     "retry": "Try again"
   },
+  "Auth": {
+    "signInTitle": "Sign in",
+    "signInDescription": "This is a placeholder sign-in page. Replace it with your authentication flow.",
+    "redirectNotice": "After signing in you will be sent back to {path}."
+  },
   "NotFound": {
     "code": "404",
     "title": "Page not found",

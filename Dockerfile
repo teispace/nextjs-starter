@@ -6,13 +6,22 @@ FROM base AS builder
 
 WORKDIR /app
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* .yarnrc.yml* ./
-COPY .yarn ./.yarn
+# Public env vars are inlined into the client bundle at build time, so they
+# must be present here, not only at runtime. Compose passes them as build args.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* .yarnrc.yml* ./
+
+# Corepack reads the `packageManager` pin from package.json, so no explicit
+# `prepare` step is needed. The `.yarn` directory is not copied: with the
+# node-modules linker it holds only a local install cache.
 RUN \
-  if [ -f yarn.lock ]; then corepack enable && corepack prepare yarn@stable --activate && yarn install --immutable; \
+  if [ -f yarn.lock ]; then corepack enable && yarn install --immutable; \
   elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
+  elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile; \
   else echo "Warning: Lockfile not found. It is recommended to commit lockfiles to version control." && yarn install; \
   fi
 
@@ -46,5 +55,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV PORT=3000
+# The standalone server binds to localhost unless told otherwise, which makes
+# the container unreachable from outside.
+ENV HOSTNAME=0.0.0.0
+
+EXPOSE 3000
 
 CMD ["node", "server.js"]

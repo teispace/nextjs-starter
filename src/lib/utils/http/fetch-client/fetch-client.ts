@@ -15,6 +15,7 @@ import {
   abortToApiException,
   buildAbortSignal,
   extractRequestIdFromHeaders,
+  isServer,
   parseApiError,
   resolvesToUpstream,
   toSearchParams,
@@ -48,6 +49,15 @@ export class FetchClient {
   }
 
   private async handleTokenRefresh(): Promise<string | null> {
+    // Never refresh on the server. The singleflight below is process-wide and
+    // keyed only by baseURL, so during SSR it would be shared by every
+    // concurrent user's request: two 401s from different sessions would await
+    // one refresh and the second would be retried with the first user's token.
+    // A Server Component render also cannot write a rotated cookie back to the
+    // browser, so a server-side refresh has no safe outcome. Surface the 401 as
+    // a value and let the client re-authenticate.
+    if (isServer()) return null;
+
     // Singleflight is keyed by baseURL and SHARED across every client (fetch +
     // axios) hitting the same upstream, so concurrent 401s never trigger more
     // than one refresh of the rotating refresh token.

@@ -16,6 +16,10 @@ export const config = {
   // assets, /public files (favicon, robots, sitemap, og-image, manifest, etc.),
   // and any path with a static-asset extension.
   matcher: [
-    '/((?!api|trpc|_next/static|_next/image|_vercel|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|opengraph-image\\.[^/]+|twitter-image\\.[^/]+|apple-icon\\.[^/]+|icon\\.[^/]+|.*\\.(?:js|css|map|json|svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|eot|mp4|webm)).*)',
+    // Metadata image routes generated from `opengraph-image.tsx` and friends
+    // are served without an extension (`/opengraph-image`), so the exclusion
+    // must not require one — otherwise next-intl rewrites them under the
+    // locale and they 404.
+    '/((?!api|trpc|_next/static|_next/image|_vercel|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|opengraph-image(?:\\.[^/]+)?$|twitter-image(?:\\.[^/]+)?$|apple-icon(?:\\.[^/]+)?$|icon(?:\\.[^/]+)?$|.*\\.(?:js|css|map|json|svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|eot|mp4|webm)).*)',
   ],
 };

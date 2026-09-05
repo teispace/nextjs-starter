@@ -11,7 +11,12 @@ import type { QueryParams } from '@/types';
 import { type AxiosClientOptions, type DataKey, left, type ResultAsync, right } from '@/types';
 
 import { extractDataByKey, getRefreshManager } from '../client-utils';
-import { extractRequestIdFromHeaderRecord, parseApiError, toSearchParams } from '../shared';
+import {
+  extractRequestIdFromHeaderRecord,
+  isServer,
+  parseApiError,
+  toSearchParams,
+} from '../shared';
 import { setupRequestInterceptor, setupResponseInterceptor } from './interceptors';
 import { refreshAuthToken } from './token-refresh';
 
@@ -48,6 +53,13 @@ export class AxiosClient {
   }
 
   private async handleTokenRefresh(): Promise<string | null> {
+    // Never refresh on the server — see the fetch client for the full
+    // rationale. The process-wide singleflight would be shared across users
+    // during SSR, and the request interceptor forwards the current user's
+    // cookies to the refresh call, so a successful server refresh here would
+    // hand one user's token to every concurrent 401 queued behind it.
+    if (isServer()) return null;
+
     // Shared per-baseURL singleflight — see getRefreshManager. Ensures the
     // fetch + axios clients never double-refresh the rotating refresh token.
     return getRefreshManager(this.baseURL).handleRefresh(() =>

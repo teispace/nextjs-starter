@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- **HTTP clients never refresh tokens on the server.** The refresh singleflight is process-wide and keyed only by upstream URL, so during SSR a refresh triggered by one user's 401 could be awaited by another user's concurrent 401 and the second request retried with the first user's token. Both clients now return a 401 as a value on the server with no refresh, no retry, and no shared state. Regression test in `src/lib/utils/http/server-refresh.test.ts`.
+- Bumped `next` and `@next/bundle-analyzer` to 16.3.4 (clears nine advisories against 16.2.9, including a proxy bypass affecting single-locale Turbopack apps).
+
+### Fixed
+
+- Open Graph and Twitter cards pointed at `/og-image.png`, which was never shipped. A default card is now rendered by `src/app/opengraph-image.tsx` and referenced explicitly as `/opengraph-image` from the layout and `generateSEOMetadata`.
+- The proxy matcher only excluded metadata routes that carried a file extension, so the extensionless `/opengraph-image` (and `twitter-image`, `icon`, `apple-icon`) routes were rewritten under the locale and returned 404. The matcher now excludes them with or without an extension, and `src/proxy.test.ts` locks the matcher in against Next's `unstable_doesMiddlewareMatch` helper.
+- The root `not-found.tsx` renders outside the locale layout and had no `metadataBase`, which made `next build` warn while resolving the Open Graph image URL. It now exports its own metadata.
+- The unauthorized redirect targeted `/auth/login`, which had no page. A localized placeholder page now exists at `src/app/[locale]/auth/login/page.tsx` and safely echoes `redirectTo`.
+- Docker: declared `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_APP_URL` as build args so they are inlined into the client bundle; removed the `COPY .yarn` step that failed on a fresh clone; set `HOSTNAME=0.0.0.0` so the standalone server is reachable; added `.next`, `coverage`, and `.yarn` to `.dockerignore`.
+- `yarn test:coverage` failed with a missing provider; `@vitest/coverage-v8` is now a devDependency.
+- Added a `packageManager` pin so Corepack selects Yarn 4 automatically (a global Yarn 1 previously failed on the lockfile).
+
 ### Added
 
 - **HTTP layer overhaul (`src/lib/utils/http/`)**: dual `fetchClient` / `axiosClient` on a shared foundation (`shared/` — request-id, response-parser, runtime, search-params). Cookie-mode auth by default with a one-flag flip to bearer; automatic `X-Request-Id` correlation; standard response envelope; offset and cursor pagination types; typed `{ params }` query objects (no manual `URLSearchParams`); single `parseApiError` pipeline; `createFetchClient` / `createAxiosClient` factories for custom upstreams. See `src/lib/utils/http/README.md`.
