@@ -1,5 +1,6 @@
-# Single-package project today; this file also carries pnpm settings.
-# Monorepo mode (next-maker `--monorepo`) adds `apps/*` and `packages/*` here.
+# Single-package project; this file also carries pnpm settings.
+# `next-maker workspace` builds a pnpm + Turborepo monorepo around apps
+# generated from this starter and moves these settings to the root.
 packages: []
 
 # Supply-chain gate: refuse any version published less than a day ago, so a
