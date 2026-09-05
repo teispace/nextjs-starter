@@ -7,12 +7,14 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
     restart: always
     ports:
       - ${PORT:-3000}:3000
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
     networks:
       - app_network
 

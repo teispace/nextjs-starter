@@ -450,7 +450,9 @@ Both modes hit the **same** server endpoint; only the carrier differs.
 
 ### Automatic refresh on 401
 
-Both clients debounce a single refresh per token-expiry window and replay the failed request once the new token is in hand. Failure (or hitting `MAX_ATTEMPTS = 3` within `COOLDOWN_MS = 1000`) clears local state and triggers `onUnauthorized` — defaulted to redirect to `/login?redirectTo=<current>`.
+Both clients debounce a single refresh per token-expiry window and replay the failed request once the new token is in hand. Failure (or hitting `MAX_ATTEMPTS = 3` within `COOLDOWN_MS = 1000`) clears local state and triggers `onUnauthorized` — defaulted to redirect to `/auth/login?redirectTo=<current>` (`AppPaths.auth.login`). A placeholder page ships at that route; replace its body with your sign-in flow.
+
+**Refresh is browser-only.** On the server (Server Components, Server Actions, Route Handlers, `proxy.ts`) a 401 is returned as a `Left` immediately, with no refresh attempt and no retry. Two reasons: a render cannot write a rotated cookie back to the browser, and the refresh singleflight is process-wide, so a server-side refresh would be shared across every concurrent user's request. Handle the 401 as a value — render the signed-out state or redirect — and let the client re-authenticate.
 
 ### Skip auth on a single call
 
@@ -580,7 +582,7 @@ const upstream = createFetchClient({
   tokenStore: secureStorageTokenStore,
   cache: 'force-cache',
   defaultOptions: { headers: { 'X-Service': 'upstream' } },
-  onUnauthorized: () => { window.location.href = '/login'; },
+  onUnauthorized: () => { window.location.href = '/auth/login'; },
 });
 ```
 
@@ -689,7 +691,7 @@ Ranked by impact — the first three matter the most.
 
 Backoff tripped (3 attempts within `COOLDOWN_MS = 1000`). Check that `POST /auth/refresh` actually rotates the refresh cookie / returns the new tokens. Common culprit: the server-side session was revoked while the frontend kept retrying.
 
-### Always redirected to `/login` in dev
+### Always redirected to `/auth/login` in dev
 
 Cookie-mode requires the server to set `access` / `refresh` cookies on a domain the frontend can read. In local dev this means same-host (e.g. both on `localhost`) or a matching cookie domain. Check whatever `COOKIE_DOMAIN` / `COOKIE_SAMESITE` settings your API uses.
 
