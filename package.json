@@ -46,7 +46,8 @@
     "test:e2e:ui": "playwright test --ui",
     "validate": "pnpm ci:check && pnpm type-check && pnpm check:deprecated && pnpm test && pnpm build",
     "prepare": "husky",
-    "commit": "cz"
+    "commit": "cz",
+    "icons": "node scripts/generate-icons.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",

@@ -19,11 +19,28 @@ test.describe('smoke', () => {
     await expect(page.getByText('Current Count: 1')).toBeVisible();
   });
 
-  test('security headers are present', async ({ request }) => {
+  test('security headers and a request id are present', async ({ request }) => {
     const res = await request.get('/');
     expect(res.headers()['x-content-type-options']).toBe('nosniff');
     expect(res.headers()['x-frame-options']).toBe('SAMEORIGIN');
     expect(res.headers()['x-powered-by']).toBeUndefined();
+    expect(res.headers()['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  test('manifest, icons, and structured data are served', async ({ page, request }) => {
+    const manifest = await request.get('/manifest.webmanifest');
+    expect(manifest.status()).toBe(200);
+    const body = (await manifest.json()) as { icons: { src: string }[] };
+    for (const icon of body.icons) {
+      const res = await request.get(icon.src);
+      expect(res.status(), icon.src).toBe(200);
+      expect(res.headers()['content-type']).toContain('image/png');
+    }
+    await page.goto('/');
+    await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', /manifest/);
+    await expect(page.locator('meta[name="theme-color"]')).toHaveCount(2);
+    const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
+    expect(JSON.parse(jsonLd ?? '{}')['@graph'][0]['@type']).toBe('WebSite');
   });
 
   test('the default Open Graph image is served', async ({ request }) => {

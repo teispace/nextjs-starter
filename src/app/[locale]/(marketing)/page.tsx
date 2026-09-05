@@ -8,6 +8,7 @@ import { getSignInCapabilities, SessionStatus } from '@/features/account/server'
 import { Counter } from '@/features/counter';
 import { generateSEOMetadata } from '@/lib/config/seo';
 import { HydrateQueries, prefetchQuery } from '@/lib/query';
+import { JsonLd, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
   const [locale, t] = await Promise.all([getLocale(), getTranslations('App')]);
@@ -39,6 +40,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-dvh w-full items-center justify-center">
+      <JsonLd data={[websiteJsonLd(), organizationJsonLd()]} />
       <div className="flex flex-col items-center gap-6">
         <div className="font-bold text-2xl">{t('title')}</div>
         <Counter />

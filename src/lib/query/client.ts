@@ -1,8 +1,9 @@
 import { cache } from 'react';
 
-import { defaultShouldDehydrateQuery, isServer, QueryClient } from '@tanstack/react-query';
+import { defaultShouldDehydrateQuery, QueryClient } from '@tanstack/react-query';
 
 import { HttpError } from '@/lib/errors';
+import { isServer } from '@/lib/runtime';
 
 /**
  * Query client defaults shared by server prefetching and the browser.
@@ -42,7 +43,7 @@ let browserQueryClient: QueryClient | undefined;
 const getServerQueryClient = cache(makeQueryClient);
 
 export const getQueryClient = (): QueryClient => {
-  if (isServer) return getServerQueryClient();
+  if (isServer()) return getServerQueryClient();
   if (!browserQueryClient) browserQueryClient = makeQueryClient();
   return browserQueryClient;
 };

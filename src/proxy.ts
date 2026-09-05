@@ -4,6 +4,11 @@ import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { isDevelopment } from './lib/config/constants';
 import { env } from './lib/env';
+import {
+  generateRequestId,
+  isValidRequestId,
+  REQUEST_ID_HEADER,
+} from './lib/http/shared/request-id';
 import { buildCsp } from './lib/security/csp';
 import { NONCE_HEADER } from './lib/security/nonce';
 
@@ -12,7 +17,18 @@ import { NONCE_HEADER } from './lib/security/nonce';
 const handleI18nRouting = createMiddleware(routing);
 
 export function proxy(request: NextRequest) {
-  if (env.CSP_MODE !== 'nonce') return handleI18nRouting(request);
+  // One id per request, shared by the render, the server HTTP client, and
+  // the API's logs. A well-formed incoming id (from an edge or gateway) is
+  // kept; anything else is replaced so a client cannot forge correlation.
+  const incoming = request.headers.get(REQUEST_ID_HEADER);
+  const requestId = incoming && isValidRequestId(incoming) ? incoming : generateRequestId();
+  request.headers.set(REQUEST_ID_HEADER, requestId);
+
+  if (env.CSP_MODE !== 'nonce') {
+    const response = handleI18nRouting(request);
+    response.headers.set(REQUEST_ID_HEADER, requestId);
+    return response;
+  }
 
   // Strict CSP: a fresh nonce per request, handed to Next through the request
   // headers (it stamps its own scripts from the `Content-Security-Policy`
@@ -30,6 +46,7 @@ export function proxy(request: NextRequest) {
 
   const response = handleI18nRouting(request);
   response.headers.set('Content-Security-Policy', csp);
+  response.headers.set(REQUEST_ID_HEADER, requestId);
   return response;
 }
 

@@ -32,10 +32,39 @@ const program = ts.createProgram({
 
 const checker = program.getTypeChecker();
 
-function isDeprecated(sym: ts.Symbol | undefined): boolean {
-  if (!sym) return false;
-  return sym.getJsDocTags(checker).some((tag) => tag.name === 'deprecated');
+const hasDeprecatedTag = (node: ts.Node): boolean =>
+  ts.getJSDocTags(node).some((tag) => tag.tagName.text === 'deprecated');
+
+/**
+ * A symbol counts as deprecated only when every declaration says so. DOM
+ * and library types often deprecate one overload (`getElementsByTagName`
+ * for legacy tag names, `querySelector` for a removed selector form) while
+ * the others stay current; flagging the whole name would be noise.
+ */
+function isDeprecatedSymbol(symbol: ts.Symbol | undefined): boolean {
+  if (!symbol) return false;
+  const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declarations = resolved.getDeclarations() ?? [];
+  if (declarations.length === 0) {
+    return resolved.getJsDocTags(checker).some((tag) => tag.name === 'deprecated');
+  }
+  return declarations.every(hasDeprecatedTag);
 }
+
+/** For a call, judge the overload that was actually chosen. */
+function isDeprecatedCall(node: ts.CallExpression | ts.NewExpression): boolean {
+  const declaration = checker.getResolvedSignature(node)?.getDeclaration();
+  return declaration !== undefined && hasDeprecatedTag(declaration);
+}
+
+const calleeIdentifier = (
+  node: ts.CallExpression | ts.NewExpression,
+): ts.Identifier | undefined => {
+  const callee = node.expression;
+  if (ts.isIdentifier(callee)) return callee;
+  if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.name)) return callee.name;
+  return undefined;
+};
 
 let hits = 0;
 
@@ -43,16 +72,27 @@ for (const sourceFile of program.getSourceFiles()) {
   if (sourceFile.fileName.includes('node_modules')) continue;
   if (!sourceFile.fileName.startsWith(cwd)) continue;
 
+  const report = (node: ts.Identifier): void => {
+    const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+    console.log(
+      `${path.relative(cwd, sourceFile.fileName)}:${line + 1}:${character + 1}  ${node.text}  (@deprecated)`,
+    );
+    hits++;
+  };
+
+  // Callee identifiers are judged by their resolved overload, everything
+  // else by its symbol; each identifier is reported at most once.
+  const judgedAsCallee = new Set<ts.Identifier>();
+
   const visit = (node: ts.Node): void => {
-    if (ts.isIdentifier(node)) {
-      const sym = checker.getSymbolAtLocation(node);
-      if (isDeprecated(sym)) {
-        const { line, character } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-        console.log(
-          `${path.relative(cwd, sourceFile.fileName)}:${line + 1}:${character + 1}  ${node.text}  (@deprecated)`,
-        );
-        hits++;
+    if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
+      const callee = calleeIdentifier(node);
+      if (callee) {
+        judgedAsCallee.add(callee);
+        if (isDeprecatedCall(node)) report(callee);
       }
+    } else if (ts.isIdentifier(node) && !judgedAsCallee.has(node)) {
+      if (isDeprecatedSymbol(checker.getSymbolAtLocation(node))) report(node);
     }
     ts.forEachChild(node, visit);
   };

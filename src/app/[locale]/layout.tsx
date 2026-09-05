@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 
 import { Livvic } from 'next/font/google';
@@ -9,7 +9,13 @@ import { getThemeScript } from '@teispace/next-themes/server';
 
 import { routing } from '@/i18n/routing';
 import { getLocaleDirection } from '@/lib/config/app-locales';
-import { APP_NAME, APP_URL, DEFAULT_OG_IMAGE_PATH } from '@/lib/config/seo';
+import {
+  APP_DESCRIPTION,
+  APP_NAME,
+  APP_URL,
+  DEFAULT_OG_IMAGE_PATH,
+  THEME_COLORS,
+} from '@/lib/config/seo';
 // Regression sentinel — see file comment for what this guards.
 import { HttpClientBundleSentinel } from '@/lib/http/__bundle-sentinel__/client-bundle-sentinel';
 import { getNonce } from '@/lib/security/nonce';
@@ -29,7 +35,7 @@ export const metadata: Metadata = {
     default: APP_NAME,
     template: `%s | ${APP_NAME}`,
   },
-  description: 'Starter template for Next.js projects with TypeScript and Tailwind CSS',
+  description: APP_DESCRIPTION,
   openGraph: {
     type: 'website',
     siteName: APP_NAME,
@@ -46,6 +52,16 @@ export const metadata: Metadata = {
     'max-image-preview': 'large',
     'max-snippet': -1,
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: THEME_COLORS.light },
+    { media: '(prefers-color-scheme: dark)', color: THEME_COLORS.dark },
+  ],
 };
 
 export function generateStaticParams() {

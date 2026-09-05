@@ -3,7 +3,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
-import { isDevelopment, isProduction } from './src/lib/config/constants';
+import { isDevelopment } from './src/lib/config/constants';
 import { env } from './src/lib/env';
 import { securityHeaders } from './src/lib/security/headers';
 

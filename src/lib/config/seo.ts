@@ -7,6 +7,9 @@ import type { SupportedLocale } from '@/types/i18n';
 
 const APP_URL = env.NEXT_PUBLIC_APP_URL;
 const APP_NAME = 'Nextjs Starter';
+const APP_DESCRIPTION = 'Starter template for Next.js projects with TypeScript and Tailwind CSS';
+/** Mirrors `--color-light` / `--color-dark` in `src/styles/globals.css`. */
+const THEME_COLORS = { light: '#f5f5f5', dark: '#202938' } as const;
 /** Served by `src/app/[locale]/opengraph-image.tsx` via the locale rewrite; relative so `metadataBase` resolves it. */
 const DEFAULT_OG_IMAGE_PATH = '/opengraph-image';
 
@@ -97,4 +100,4 @@ export function generateSEOMetadata({
   };
 }
 
-export { APP_NAME, APP_URL, DEFAULT_OG_IMAGE_PATH };
+export { APP_DESCRIPTION, APP_NAME, APP_URL, DEFAULT_OG_IMAGE_PATH, THEME_COLORS };
