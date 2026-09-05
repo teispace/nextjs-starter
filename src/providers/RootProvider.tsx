@@ -2,6 +2,7 @@
 
 import { type AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
 
+import { QueryProvider } from '@/lib/query';
 import type { AppState } from '@/store';
 import type { SupportedLocale } from '@/types/i18n';
 
@@ -28,10 +29,12 @@ export const RootProvider = ({
   preloadedState,
 }: RootProviderProps) => {
   return (
-    <StoreProvider preloadedState={preloadedState}>
-      <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
-        {children}
-      </NextIntlClientProvider>
-    </StoreProvider>
+    <QueryProvider>
+      <StoreProvider preloadedState={preloadedState}>
+        <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
+          {children}
+        </NextIntlClientProvider>
+      </StoreProvider>
+    </QueryProvider>
   );
 };

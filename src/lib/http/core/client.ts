@@ -143,12 +143,13 @@ export class HttpClient {
     // run inside it, so a hung upstream cannot multiply the wait.
     const { signal, isTimeout } = buildAbortSignal(options.signal, options.timeout ?? this.timeout);
     const canRefresh = !(options.skipAuth || isServer()) && this.auth.refresh !== undefined;
+    const headers = await this.resolveHeaders(options);
 
     let attempt = 0;
     let refreshed = false;
 
     for (;;) {
-      const outcome = await this.attempt(fullURL, method, options, signal);
+      const outcome = await this.attempt(fullURL, method, options, signal, headers);
 
       if (outcome.kind === 'error') {
         const error = this.classify(outcome.error, isTimeout(), options.signal);
@@ -173,6 +174,7 @@ export class HttpClient {
         // `canRefresh` guarantees the policy has a refresh function.
         const renewed = await (this.auth.refresh as NonNullable<AuthPolicy['refresh']>)();
         if (renewed) continue;
+        options.onResponse?.(response);
         const error = httpErrorFromResponse(body, 401, requestId);
         this.auth.onUnauthorized?.(error);
         return fail(error);
@@ -184,6 +186,7 @@ export class HttpClient {
           isRetryableStatus(policy, response.status) &&
           isRetryableMethod(policy, method) &&
           attempt < policy.retries;
+        if (!retryable) options.onResponse?.(response);
         if (retryable) {
           const waited = await this.backoff(
             policy,
@@ -200,6 +203,7 @@ export class HttpClient {
         return fail(httpErrorFromResponse(body, response.status, requestId));
       }
 
+      options.onResponse?.(response);
       const data = extractDataByKey<T>(
         body,
         options.dataKey === undefined ? this.dataKey : options.dataKey,
@@ -220,25 +224,38 @@ export class HttpClient {
     }
   }
 
+  /**
+   * Resolve per-request headers once, outside the transport's error
+   * handling. The server resolvers read Next request APIs, whose rejections
+   * (a prerender that ended, a call outside a request scope) belong to the
+   * framework and must never be reclassified as a network failure.
+   */
+  private async resolveHeaders(options: RequestOptions<unknown>): Promise<Headers> {
+    const headers = mergeHeaders(this.headers, options.headers);
+
+    const provided = headers.get(REQUEST_ID_HEADER);
+    if (!(provided && isValidRequestId(provided))) {
+      const incoming = this.requestIdResolver ? await this.requestIdResolver() : undefined;
+      headers.set(REQUEST_ID_HEADER, incoming ?? generateRequestId());
+    }
+
+    if (this.cookieResolver && !headers.has('cookie')) {
+      const cookie = await this.cookieResolver();
+      if (cookie) headers.set('cookie', cookie);
+    }
+
+    return headers;
+  }
+
   private async attempt(
     url: string,
     method: HttpMethod,
     options: RequestOptions<unknown>,
     signal: AbortSignal | undefined,
+    baseHeaders: Headers,
   ): Promise<Attempt> {
     try {
-      const headers = mergeHeaders(this.headers, options.headers);
-
-      const provided = headers.get(REQUEST_ID_HEADER);
-      if (!(provided && isValidRequestId(provided))) {
-        const incoming = this.requestIdResolver ? await this.requestIdResolver() : undefined;
-        headers.set(REQUEST_ID_HEADER, incoming ?? generateRequestId());
-      }
-
-      if (this.cookieResolver && !headers.has('cookie')) {
-        const cookie = await this.cookieResolver();
-        if (cookie) headers.set('cookie', cookie);
-      }
+      const headers = new Headers(baseHeaders);
 
       const prepared =
         method === 'GET' || method === 'HEAD'

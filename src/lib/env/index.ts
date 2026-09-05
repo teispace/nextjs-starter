@@ -34,6 +34,12 @@ export const env = defineEnv({
       .describe(
         'Origin the server uses to reach the API (private network name in containers). Falls back to NEXT_PUBLIC_API_URL.',
       ),
+    BUILD_STANDALONE: e
+      .boolean()
+      .default(false)
+      .describe(
+        'Emit the self-contained `.next/standalone` server (Docker). Leave off for `next start` and platform hosts.',
+      ),
     CSP_MODE: e
       .enum(['static', 'nonce', 'off'])
       .default('static')

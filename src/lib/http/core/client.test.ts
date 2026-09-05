@@ -50,6 +50,21 @@ describe.each(adapters)('HttpClient over %s', (_name, makeAdapter) => {
     expect(result).toEqual({ ok: true, data: { page: '2', tags: ['a', 'b'], empty: false } });
   });
 
+  it('exposes the final response to onResponse for header-only consumers', async () => {
+    server.use(
+      mswHttp.post(`${BASE}/logout`, () =>
+        HttpResponse.json({ data: null }, { headers: { 'set-cookie': 'session=; Max-Age=0' } }),
+      ),
+    );
+    const seen: Response[] = [];
+    const result = await make().post('/logout', undefined, {
+      onResponse: (response) => seen.push(response),
+    });
+    expect(result.ok).toBe(true);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.headers.get('set-cookie')).toContain('session=');
+  });
+
   it('stamps a request id and keeps a valid caller-provided one', async () => {
     const seen: string[] = [];
     server.use(

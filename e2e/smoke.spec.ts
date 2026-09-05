@@ -45,3 +45,18 @@ test.describe('smoke', () => {
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
   });
 });
+
+test.describe('account', () => {
+  test('home shows sign-in options from the cached capabilities fallback', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { name: 'Sign in with' })).toBeVisible();
+    await expect(page.getByText('Password')).toBeVisible();
+    await expect(page.getByText('You are signed out.')).toBeVisible();
+  });
+
+  test('the dashboard sends signed-out visitors to sign in and back', async ({ page }) => {
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/auth\/login\?redirectTo=%2Fdashboard$/);
+    await expect(page.getByText('sent back to /dashboard')).toBeVisible();
+  });
+});

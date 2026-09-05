@@ -8,7 +8,7 @@ import { env } from './src/lib/env';
 import { securityHeaders } from './src/lib/security/headers';
 
 const nextConfig: NextConfig = {
-  output: isProduction ? 'standalone' : undefined,
+  output: env.BUILD_STANDALONE ? 'standalone' : undefined,
   reactCompiler: true,
   // Partial prerendering with explicit caching: static shells stream
   // instantly, dynamic parts stream in. `use cache` / `cacheTag` are the only

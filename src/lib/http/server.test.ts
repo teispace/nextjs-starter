@@ -11,6 +11,7 @@ vi.mock('@/lib/env', () => ({
     NODE_ENV: 'test',
     API_INTERNAL_URL: 'http://api.internal:4000',
     NEXT_PUBLIC_API_URL: 'https://api.example.com',
+    NEXT_PUBLIC_APP_URL: 'https://app.example.com',
   },
 }));
 vi.mock('@/lib/logger', () => ({

@@ -68,11 +68,14 @@ export const readIncomingRequestId = async (): Promise<string | undefined> => {
 /**
  * Where server-side calls go. `API_INTERNAL_URL` lets containers reach the
  * API over a private network name while browsers keep using the public
- * origin; it falls back to the public URL, then to same-origin.
+ * origin; it falls back to the public API URL. With neither configured the
+ * browser talks to same-origin `/api`, which on the server can only mean
+ * this app's own public URL: `fetch` has no origin to resolve `/api` against.
  */
 export const getServerApiBaseUrl = (): string => {
-  const raw = (env.API_INTERNAL_URL ?? env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/$/, '');
-  if (!raw) return API_PREFIX;
+  const raw = (env.API_INTERNAL_URL ?? env.NEXT_PUBLIC_API_URL ?? env.NEXT_PUBLIC_APP_URL)
+    .trim()
+    .replace(/\/$/, '');
   return `${raw.replace(/\/api\/v\d+$/, '')}${API_PREFIX}`;
 };
 
@@ -86,3 +89,18 @@ export const createServerHttpClient = (options: HttpClientOptions = {}): HttpCli
   });
 
 export const serverHttp = createServerHttpClient();
+
+/**
+ * Server client for **public, user-independent** data: same internal base
+ * URL, but no cookie or request-id forwarding, so it never touches the
+ * request scope. It is the only server client safe to call inside a
+ * `use cache` function or during a static prerender.
+ */
+export const createPublicServerHttpClient = (options: HttpClientOptions = {}): HttpClient =>
+  createHttpClient({
+    baseURL: getServerApiBaseUrl(),
+    cache: 'no-store',
+    ...options,
+  });
+
+export const publicServerHttp = createPublicServerHttpClient();

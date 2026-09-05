@@ -19,7 +19,16 @@ v2 is a greenfield rebuild on a new branch; proven modules were ported, everythi
 - **Env**: `@teispace/env` 1.0; `NEXT_PUBLIC_APP_URL` uses `devDefault` and is required in production builds; server variables are no longer listed in `runtimeEnv`.
 - **Security**: `src/lib/security` builds the headers and CSP. `CSP_MODE=static` (default) keeps pages prerenderable; `CSP_MODE=nonce` is the strict per-request policy from the proxy. `X-XSS-Protection` is removed; `Permissions-Policy` and `Cross-Origin-Opener-Policy` are added.
 - **Testing**: MSW-backed integration tests for the HTTP core over both adapters, proxy matcher tests via Next's testing helpers, coverage thresholds as a ratchet, and Playwright end-to-end tests against a production build (`pnpm test:e2e`, Chromium in CI).
-- **Docker**: pnpm multi-stage build with a store cache, health check, and declared build args.
+- **Docker**: pnpm multi-stage build with a store cache, health check, and declared build args. Standalone output is opt-in through `BUILD_STANDALONE=true` (the Dockerfile sets it); `pnpm start` works again for everyone else.
+
+### Added
+
+- **Data layer**. `src/lib/query` wraps TanStack Query 5: a request-scoped `QueryClient` on the server and a per-tab one in the browser, `prefetchQuery` (failures are left to the client), `HydrateQueries`, and `unwrapForQuery` to bridge the transport's `Result`. `src/lib/actions` wraps next-safe-action 8 with `actionClient` (input validation, request id, timing log, `HttpError` mapped to a plain `ActionError`, unknown errors never echoed) and `authActionClient` (loads the session, refuses anonymous callers with a 401 `ActionError`). `src/lib/auth` holds `getCurrentUser` (React-`cache`d, never `use cache`d), `requireUser` (redirects to sign-in with a return path), and `relaySetCookies` so Server Actions can replay the API's `Set-Cookie` headers.
+- **Reference feature `src/features/account`** shows the full shape: `api/schema.ts` (zod contracts, inferred types), `api/server.ts` (`use cache` + `cacheTag` DAL over `publicServerHttp`), `api/actions.ts` (`signOut` through `authActionClient`), `api/queries.ts` (`queryOptions` + `useSuspenseQuery`), server and client components, a client-safe `index.ts` and a `server.ts` barrel, and unit, component, and end-to-end tests. Route groups `(marketing)` and `(app)` with a `/dashboard` page gated by `requireUser`.
+- `publicServerHttp` (`@/lib/http/server`): the server client without cookie or request-id forwarding, the only one safe inside `use cache` and static prerenders. `RequestOptions.onResponse` exposes the final response for header-only consumers.
+- `HttpClient` resolves cookie and request-id headers outside its transport error handling, so Next's prerender interrupts propagate instead of being logged as network failures.
+- `getServerApiBaseUrl` resolves against `NEXT_PUBLIC_APP_URL` when no API origin is configured, because a relative `/api` cannot be fetched from the server.
+- `pnpm typegen` runs `next typegen` in development mode unless `NODE_ENV` is set, so a fresh clone type-checks without a `.env` file.
 
 ## [1.1.0] — Unreleased on the 1.x line
 

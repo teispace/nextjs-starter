@@ -74,6 +74,12 @@ export interface RequestOptions<T = unknown> {
   retry?: Partial<RetryPolicy> | false;
   /** Do not attempt a session refresh on 401 (sign-in, refresh, public endpoints). */
   skipAuth?: boolean;
+  /**
+   * Observe the final response (after retries and refresh) before it is
+   * turned into a result. The body is already consumed; use it for headers,
+   * e.g. relaying `Set-Cookie` from a Server Action.
+   */
+  onResponse?: (response: Response) => void;
 }
 
 /** What an adapter receives: everything already resolved to primitives. */
