@@ -1,0 +1,15 @@
+# Single-package project; this file also carries pnpm settings.
+# `next-maker workspace` builds a pnpm + Turborepo monorepo around apps
+# generated from this starter and moves these settings to the root.
+packages: []
+
+# Supply-chain gate: refuse any version published less than a day ago, so a
+# compromised release is usually yanked before it can reach an install.
+minimumReleaseAge: 1440
+
+# Install scripts are opt-in. Each of these ships prebuilt binaries and its
+# script is only a download fallback or a notice, so they stay off.
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  msw: false

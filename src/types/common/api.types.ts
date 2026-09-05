@@ -12,7 +12,7 @@ export interface ApiResponse<T> {
 
 /**
  * Error envelope returned by the API on failure. Surfaced on the client as
- * an `ApiException` by the HTTP clients.
+ * an `HttpError` by the HTTP client.
  *
  * `timestamp` is optional because not every API stamps failure responses
  * the same way it stamps successes. `requestId` is set when a server-side

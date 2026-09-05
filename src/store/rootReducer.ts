@@ -1,19 +1,25 @@
-import { combineReducers } from '@reduxjs/toolkit';
-import { persistReducer } from 'redux-persist';
+import { combineSlices } from '@reduxjs/toolkit';
 
-import { countPersistConfig, counterReducer as countReducer } from '@/features/counter/store';
+import { counterSlice } from '@/features/counter/store/counter.slice';
 
-import { wsReducer } from './slices/ws.slice';
+import { persistSlice } from './persistence';
+// @next-maker:ws
+import { wsSlice } from './slices/ws.slice';
 
 /**
- * `ws` is intentionally NOT wrapped in `persistReducer` — connection state
- * is ephemeral, and rehydrating "connected: true" on first paint would lie
- * about the actual transport. The bridge dispatches the real status as
- * soon as the WS client mounts.
+ * Root reducer built with `combineSlices` so feature slices can also be
+ * injected lazily from code-split routes via `rootReducer.inject(slice)`.
+ *
+ * Persistence is declared per slice (see `features/counter/store/persist.ts`)
+ * and applied in `makeStore`; the `ws` slice is transport state and is never
+ * persisted. Rehydrating "connected: true" on first paint would lie about
+ * the actual socket.
  */
-export const rootReducer = combineReducers({
-  count: persistReducer(countPersistConfig, countReducer),
-  ws: wsReducer,
-});
+export const rootReducer = combineSlices(
+  counterSlice,
+  // @next-maker:ws
+  wsSlice,
+  persistSlice,
+);
 
 export type RootState = ReturnType<typeof rootReducer>;

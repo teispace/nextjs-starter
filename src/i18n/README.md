@@ -1,259 +1,112 @@
-# 🌍 Internationalization (i18n) Guide
+# Internationalization
 
-Quick reference for using **next-intl** in this project.
-
----
-
-## 📁 Structure
+next-intl 4 on the App Router. The locale is a root param, so pages and layouts need no per-file ceremony to stay static.
 
 ```
 src/i18n/
-├── routing.ts          # Route config (locales, defaultLocale, localePrefix)
-├── request.ts          # Server-side config (loads translations, reads timeZone from env)
-├── navigation.ts       # Locale-aware Link, redirect, useRouter
+├── routing.ts        locales, defaultLocale, localePrefix (reads src/lib/config/app-locales.ts)
+├── request.ts        resolves the locale from next/root-params, loads messages, timeZone, formats
+├── formats.ts        shared dateTime / number / list formats
+├── navigation.ts     locale-aware Link, redirect, useRouter, usePathname, getPathname
 └── translations/
-    └── en.json         # Translation files
+    └── en.json
 ```
 
-Locale types (`SupportedLocale`, `AppLocale`, `LocaleDirection`) live in `src/types/i18n.ts` alongside the `next-intl` `AppConfig` module augmentation. The list of locales and their metadata lives in `src/lib/config/app-locales.ts` — `routing.ts` reads from there.
+Types (`SupportedLocale`, `AppLocale`, `LocaleDirection`) and the `AppConfig` augmentation that types `Messages` and `Formats` live in `src/types/i18n.ts`.
 
----
+## Using translations
 
-## 📝 How to Use Translations
-
-### In Server Components (Recommended)
-
-**Non-async:**
-
-```tsx
-import { useTranslations } from 'next-intl';
-
-export default function UserProfile() {
-  const t = useTranslations('UserProfile');
-  return <h2>{t('title')}</h2>;
-}
-```
-
-**Async (for data fetching):**
+Server Components:
 
 ```tsx
 import { getTranslations } from 'next-intl/server';
 
-export default async function ProfilePage() {
-  const t = await getTranslations('ProfilePage');
-  return <h1>{t('title')}</h1>;
+export default async function Page() {
+  const t = await getTranslations('Account');
+  return <h1>{t('dashboardTitle')}</h1>;
 }
 ```
 
-### In Client Components
-
-**Option 1: Pass from Server (Best)**
-
-```tsx
-// Server: Translate and pass as props
-import { useTranslations } from 'next-intl';
-import ClientButton from './ClientButton';
-
-export default function FAQ() {
-  const t = useTranslations('FAQ');
-  return <ClientButton label={t('submit')} />;
-}
-```
-
-**Option 2: Use All Messages (Already Setup)**
+Client Components get the messages from `RootProvider`:
 
 ```tsx
 'use client';
 import { useTranslations } from 'next-intl';
 
-export default function ClientComponent() {
-  const t = useTranslations('SomeNamespace');
-  return <div>{t('message')}</div>;
+export function SignOutButton() {
+  const t = useTranslations('Account');
+  return <button type="button">{t('signOut')}</button>;
 }
 ```
 
----
+Passing translated strings down from a Server Component as props is still the cheapest option when a client leaf only needs a label.
 
-## 🎯 Static Rendering (SSG)
+## Static rendering
 
-**Required in EVERY page/layout:**
+Nothing to do per page. `src/i18n/request.ts` reads the locale with `rootParams` (`next/root-params`), validates it against `routing.locales`, and calls `notFound()` for anything else. `generateStaticParams` in `src/app/[locale]/layout.tsx` lists the locales once. Pages stay in the static shell unless they read request data; under Cache Components that work belongs under `<Suspense>`.
+
+Do not call `setRequestLocale`; it is deprecated in next-intl 4 and unnecessary here.
+
+## Metadata
 
 ```tsx
-import { setRequestLocale } from 'next-intl/server';
-import { routing } from '@/i18n/routing';
-
-// 1. Export this
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
-
-export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-
-  // 2. Call BEFORE using translations
-  setRequestLocale(locale as 'en');
-
-  // 3. Now use translations
-  const t = await getTranslations('PageName');
-  return <h1>{t('title')}</h1>;
+export async function generateMetadata(): Promise<Metadata> {
+  const [locale, t] = await Promise.all([getLocale(), getTranslations('App')]);
+  return generateSEOMetadata({ title: t('title'), description: t('description'), path: '/', locale });
 }
 ```
 
-**Verify static build:**
+`generateSEOMetadata` (`@/lib/config/seo`) adds canonical and hreflang URLs, Open Graph, Twitter, and robots directives.
 
-```bash
-yarn build
-# Look for: ● /[locale] (not ƒ)
-```
-
----
-
-## 🔧 Navigation
-
-Use locale-aware navigation APIs:
+## Navigation
 
 ```tsx
 import { Link, useRouter } from '@/i18n/navigation';
 
-function Nav() {
-  const router = useRouter();
-
-  return (
-    <>
-      <Link href="/about">About</Link>
-      <button onClick={() => router.push('/contact')}>Go</button>
-    </>
-  );
-}
+<Link href={AppPaths.dashboard}>Dashboard</Link>;
+router.replace(AppPaths.home);
 ```
 
----
+Always import navigation from `@/i18n/navigation`, not from `next/link` or `next/navigation`, so locale prefixes are applied consistently.
 
-## 🌐 Adding New Locale
+## Formats
 
-**1. Create translation file:**
-
-```bash
-cp src/i18n/translations/en.json src/i18n/translations/es.json
-```
-
-**2. Update types:**
-
-```ts
-// src/types/i18n.ts
-export type SupportedLocale = 'en' | 'es';
-```
-
-**3. Update app locales:**
-
-```ts
-// src/lib/config/app-locales.ts
-export const appLocales: AppLocale[] = [
-  { name: 'English', locale: 'en', flag: '🇺🇸', country: 'United States' },
-  { name: 'Español', locale: 'es', flag: '🇪🇸', country: 'Spain' },
-];
-```
-
-**4. Update routing:**
-
-```ts
-// src/i18n/routing.ts
-locales: ['en', 'es'];
-```
-
-**5. Build:**
-
-```bash
-yarn build
-```
-
----
-
-## 📝 Translation Syntax
-
-**Variables:**
-
-```json
-{ "greeting": "Hello, {name}!" }
-```
-
-```tsx
-t('greeting', { name: 'John' }); // "Hello, John!"
-```
-
-**Plurals:**
-
-```json
-{ "items": "{count, plural, =0 {No items} =1 {One item} other {# items}}" }
-```
-
-**Rich Text:**
-
-```tsx
-t.rich('terms', {
-  terms: (chunks) => <Link href="/terms">{chunks}</Link>,
-});
-```
-
-**Formatting:**
+`src/i18n/formats.ts` defines named formats (`dateTime.short`, `number.currency`, `list.enumeration`). They are typed through `AppConfig`, so `format.dateTime(date, 'short')` autocompletes:
 
 ```tsx
 import { useFormatter } from 'next-intl';
-
 const format = useFormatter();
-format.dateTime(new Date(), { dateStyle: 'long' });
-format.number(1234.56, { style: 'currency', currency: 'USD' });
+format.dateTime(new Date(), 'long');
+format.number(12.5, 'percent');
 ```
 
----
+The server-side time zone comes from `DEFAULT_TIMEZONE` so rendered dates match between server and client.
 
-## 🔍 Where to Use
+## Adding a locale
 
-### Metadata/SEO
+1. `cp src/i18n/translations/en.json src/i18n/translations/es.json` and translate.
+2. Add the entry to `appLocales` in `src/lib/config/app-locales.ts` (name, flag, `ogLocale`, optional `dir: 'rtl'`).
+3. Widen `SupportedLocale` in `src/types/i18n.ts`.
+4. `pnpm build` prerenders `/es` and `/es/opengraph-image`.
 
-```tsx
-export async function generateMetadata({ params }) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Metadata' });
-  return { title: t('title') };
+## Message syntax
+
+```json
+{
+  "greeting": "Hello, {name}!",
+  "items": "{count, plural, =0 {No items} =1 {One item} other {# items}}",
+  "terms": "Read the <link>terms</link>"
 }
 ```
 
-### Server Actions
-
 ```tsx
-export async function submitForm(formData: FormData) {
-  'use server';
-  const t = await getTranslations('Forms');
-  console.log(t('submitting'));
-}
+t('greeting', { name });
+t('items', { count });
+t.rich('terms', { link: (chunks) => <Link href="/terms">{chunks}</Link> });
 ```
 
----
+## Common issues
 
-## ⚠️ Common Issues
-
-**Build shows `ƒ` (dynamic) instead of `●` (static):**
-- Missing `generateStaticParams()` export
-- Missing `setRequestLocale(locale)` call
-
-**TypeScript errors on locale:**
-```tsx
-setRequestLocale(locale as 'en');  // Cast it
-````
-
-**Client component can't access translations:**
-
-- Pass as props from server (recommended)
-- Or use the root provider (already setup)
-
----
-
-## 📚 Resources
-
-- [next-intl Docs](https://next-intl.dev)
-- [ICU Message Format](https://unicode-org.github.io/icu/userguide/format_parse/messages/)
-
----
-
-**Versions are tracked in `package.json` — this guide targets `next-intl ^4.12` on Next 16.**
+- **A page went dynamic**: it reads `cookies()`, `headers()`, or `searchParams` outside `<Suspense>`. Move that read into a small async component inside a boundary.
+- **`notFound()` for a valid locale**: the locale is missing from `routing.locales` or `appLocales`.
+- **Hydration mismatch on dates**: the client formats with a different time zone. Use `useFormatter` (it honours the server's `timeZone`) instead of `toLocaleString`.

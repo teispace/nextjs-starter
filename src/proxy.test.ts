@@ -6,19 +6,25 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 // The proxy itself delegates to next-intl's middleware factory, which is not
 // under test here; stub it so importing `./proxy` only yields the matcher.
-vi.mock('next-intl/middleware', () => ({ default: () => () => undefined }));
+vi.mock('next-intl/middleware', () => ({
+  default: () => () => new Response(null, { headers: new Headers() }),
+}));
 
 // Next's testing helpers expect the runtime to have installed a global
 // AsyncLocalStorage; provide Node's before the module is loaded.
 type Matcher = (args: { config: unknown; nextConfig: object; url: string }) => boolean;
 let doesProxyMatch: Matcher;
 let config: unknown;
+let proxy: (request: Request) => Response;
 
 beforeAll(async () => {
   (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??= AsyncLocalStorage;
   const testing = await import('next/experimental/testing/server');
   doesProxyMatch = testing.unstable_doesMiddlewareMatch as Matcher;
-  ({ config } = await import('./proxy'));
+  ({ config, proxy } = (await import('./proxy')) as unknown as {
+    config: unknown;
+    proxy: (request: Request) => Response;
+  });
 });
 
 const matches = (url: string): boolean => doesProxyMatch({ config, nextConfig: {}, url });
@@ -38,14 +44,13 @@ describe('proxy matcher', () => {
     expect(matches('/fonts/livvic.woff2')).toBe(false);
   });
 
-  it('skips metadata routes whether or not they carry an extension', () => {
-    // File-convention routes like `opengraph-image.tsx` are served at an
-    // extensionless URL; rewriting them under the locale would 404.
-    expect(matches('/opengraph-image')).toBe(false);
+  it('skips static metadata files but routes extensionless metadata through the locale rewrite', () => {
+    // `[locale]/opengraph-image.tsx` is served at `/opengraph-image` only
+    // because the proxy rewrites it under the active locale, exactly like a page.
+    expect(matches('/opengraph-image')).toBe(true);
+    expect(matches('/icon')).toBe(true);
     expect(matches('/opengraph-image.png')).toBe(false);
-    expect(matches('/twitter-image')).toBe(false);
-    expect(matches('/apple-icon')).toBe(false);
-    expect(matches('/icon')).toBe(false);
+    expect(matches('/apple-icon.png')).toBe(false);
     expect(matches('/robots.txt')).toBe(false);
     expect(matches('/sitemap.xml')).toBe(false);
     expect(matches('/manifest.webmanifest')).toBe(false);
@@ -54,5 +59,20 @@ describe('proxy matcher', () => {
   it('still runs on pages whose path merely starts with a metadata name', () => {
     expect(matches('/icons')).toBe(true);
     expect(matches('/iconography/guide')).toBe(true);
+  });
+});
+
+describe('proxy request id', () => {
+  const run = (headers?: HeadersInit) =>
+    proxy(new Request('https://app.example.com/', { headers }));
+
+  it('mints an id and echoes it on the response', () => {
+    const response = run();
+    expect(response.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('keeps a well-formed incoming id and replaces a malformed one', () => {
+    expect(run({ 'x-request-id': 'edge-42' }).headers.get('x-request-id')).toBe('edge-42');
+    expect(run({ 'x-request-id': 'bad id!' }).headers.get('x-request-id')).not.toBe('bad id!');
   });
 });

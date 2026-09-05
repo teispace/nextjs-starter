@@ -29,7 +29,7 @@ git remote add upstream https://github.com/teispace/teispace.git
 ### 2. Install Dependencies
 
 ```bash
-yarn install
+pnpm install
 ```
 
 ### 3. Create a Feature Branch
@@ -91,7 +91,7 @@ We **highly recommend** using Commitizen for guided commits:
 git add .
 
 # Use Commitizen to create a commit
-yarn commit
+pnpm commit
 ```
 
 This will prompt you through creating a properly formatted commit message.
@@ -113,16 +113,16 @@ On every commit, the following checks run automatically via Husky hooks:
 
 #### Pre-commit Hook
 
-- Verifies `.env.example` is in sync with `.env` (`yarn env:sync --check`)
+- Verifies `.env.example` is in sync with `.env` (`pnpm env:sync --check`)
 - Runs `lint-staged`, which executes `biome check --write` on staged files (single command lints, formats, sorts imports)
-- If any TypeScript files are staged, runs `yarn type-check` (`tsc --noEmit`) on the whole project
+- If any TypeScript files are staged, runs `pnpm type-check` (`tsc --noEmit`) on the whole project
 
 #### Pre-push Hook
 
-- `yarn ci:check` (the same `biome ci` CI runs)
-- `yarn type-check`
-- `yarn check:deprecated`
-- `yarn test` (Vitest run)
+- `pnpm ci:check` (the same `biome ci` CI runs)
+- `pnpm type-check`
+- `pnpm check:deprecated`
+- `pnpm test` (Vitest run)
 
 The production build is left to CI — pre-push deliberately skips it to keep the wait short.
 
@@ -137,44 +137,45 @@ Before submitting a PR, run these commands locally:
 
 ```bash
 # Lint + format + import-sort check (non-mutating, matches CI)
-yarn lint
+pnpm lint
 
 # Apply all auto-fixes (lint + format + import sort)
-yarn lint:fix
+pnpm lint:fix
 
 # Format only (write)
-yarn format
+pnpm format
 
 # Check formatting only (non-mutating)
-yarn format:check
+pnpm format:check
 
 # CI-equivalent single-pass check (what GitHub Actions runs)
-yarn ci:check
+pnpm ci:check
 
 # Type check
-yarn type-check
+pnpm type-check
 
 # Flag any use of an @deprecated API (TS compiler-API sweep)
-yarn check:deprecated
+pnpm check:deprecated
 
 # Run tests
-yarn test
+pnpm test
 
 # Run all checks + build
-yarn validate
+pnpm validate
 ```
 
 ## 🧪 Testing
 
-Vitest + React Testing Library + jsdom are wired up. Co-locate tests as `*.test.ts(x)` next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when your component needs Redux/i18n.
+Vitest 5 runs two projects: `node` for `*.test.ts` and `jsdom` for `*.test.tsx` (add `// @vitest-environment jsdom` to a `.ts` test that needs the DOM). Co-locate tests next to the source file. Use `renderWithProviders` from `test/test-utils.tsx` when a component needs TanStack Query, Redux, or i18n, and MSW (`msw/node`) for HTTP.
 
 ```bash
-yarn test            # one-shot run (also what CI executes)
-yarn test:watch      # watch mode for local dev
-yarn test:coverage   # v8 coverage report
+pnpm test            # one-shot run
+pnpm test:watch      # watch mode
+pnpm test:coverage   # v8 coverage with thresholds (CI runs this)
+pnpm test:e2e        # Playwright against a production build (pnpm exec playwright install first)
 ```
 
-Global setup (jsdom polyfills, `react-secure-storage` and `server-only` stubs) lives in `test/setup.ts`.
+Global setup lives in `test/setup.node.ts` (stubs `server-only`) and `test/setup.dom.ts` (jest-dom matchers, cleanup).
 
 ## 🔧 Development Workflow
 
@@ -197,7 +198,7 @@ Global setup (jsdom polyfills, `react-secure-storage` and `server-only` stubs) l
 4. **Commit using Commitizen**:
 
    ```bash
-   yarn commit
+   pnpm commit
    ```
 
    - The pre-commit hook will automatically lint and format your staged files
@@ -213,10 +214,10 @@ Global setup (jsdom polyfills, `react-secure-storage` and `server-only` stubs) l
 
 ### What Happens During Commit?
 
-When you run `git commit` or `yarn commit`:
+When you run `git commit` or `pnpm commit`:
 
 1. **Pre-commit hook triggers**:
-   - Syncs `.env.example` from `.env` (via `yarn env:sync`)
+   - Syncs `.env.example` from `.env` (via `pnpm env:sync`)
    - Runs `lint-staged` on your staged files
    - Executes `biome check --write` (lint + format + import sort in one pass)
    - Type-checks staged TypeScript files
@@ -234,10 +235,10 @@ When you run `git commit` or `yarn commit`:
 ### Before Submitting
 
 - [ ] All commits follow Conventional Commits format
-- [ ] `yarn ci:check` passes (lint + format + import sort)
-- [ ] `yarn type-check` passes
-- [ ] `yarn check:deprecated` passes
-- [ ] `yarn test` passes (add tests for new behaviour)
+- [ ] `pnpm ci:check` passes (lint + format + import sort)
+- [ ] `pnpm type-check` passes
+- [ ] `pnpm check:deprecated` passes
+- [ ] `pnpm test` passes (add tests for new behaviour)
 - [ ] No `console.*` or debugging code left behind (use `logger` from `@/lib/logger`)
 - [ ] Self-review of your own diff
 

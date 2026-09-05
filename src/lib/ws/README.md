@@ -1,0 +1,754 @@
+# WebSocket Client
+
+**TL;DR** — Typed Socket.IO client wrapping `socket.io-client`. Cookie sessions by default, a custom `auth` provider for token handshakes, public/anonymous mode opt-in. Heartbeat, reconnection, and `auth:force:disconnect` handling are built in. Connection state flows through Redux; subscriptions through three small hooks. **Browser-only** — opening a socket from a Server Component throws.
+
+```
+src/lib/ws/
+├─ types/           event maps + payload shapes (the contract)
+├─ shared/          runtime guard, auth-carrier, URL composer (internal)
+├─ client/          WsClient class + default `wsClient` singleton (lazy)
+├─ redux/           bridge + selectors (internal: only StoreProvider attaches)
+├─ hooks/           useWsStatus, useWsEvent, useWsEmit
+├─ constants.ts     namespace, heartbeat interval, reconnection bounds
+└─ index.ts         public barrel
+```
+
+Feature code imports from `@/lib/ws` only. `shared/` and `client/lifecycle-emitter` are private — reaching into them breaks at the next refactor.
+
+---
+
+## Table of Contents
+
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [In-depth usage guide](#in-depth-usage-guide)
+  - [Authentication modes](#authentication-modes)
+  - [Connection lifecycle in practice](#connection-lifecycle-in-practice)
+  - [Listening to server events](#listening-to-server-events)
+  - [Sending events to the server](#sending-events-to-the-server)
+  - [Reading and reacting to connection state](#reading-and-reacting-to-connection-state)
+  - [Presence (online/offline tracking)](#presence-onlineoffline-tracking)
+  - [Handling server-initiated disconnects](#handling-server-initiated-disconnects)
+  - [Public / anonymous flows](#public--anonymous-flows)
+  - [Multi-namespace apps](#multi-namespace-apps)
+  - [Adding custom feature events](#adding-custom-feature-events)
+  - [Imperative use outside React](#imperative-use-outside-react)
+  - [Cleanup on logout](#cleanup-on-logout)
+  - [Testing components that use the WS layer](#testing-components-that-use-the-ws-layer)
+- [API reference](#api-reference)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Quick start
+
+```tsx
+'use client';
+
+import { useEffect } from 'react';
+import { useWsEvent, useWsEmit, useWsStatus } from '@/lib/ws';
+
+export function PresenceWidget({ userId }: { userId: string }) {
+  const { isConnected } = useWsStatus();
+  const emit = useWsEmit();
+
+  useEffect(() => {
+    if (!isConnected) return;
+    emit('presence:subscribe', { userId });
+    return () => { emit('presence:unsubscribe', { userId }); };
+  }, [isConnected, userId, emit]);
+
+  useWsEvent('presence:online', ({ userId: uid }) => {
+    if (uid === userId) console.log(`${userId} is online`);
+  });
+
+  return <span>{isConnected ? '🟢' : '⚪'}</span>;
+}
+```
+
+No explicit `connect()` — `useWsEvent` triggers a lazy connect on first subscribe. The transport opens once and stays alive for the app lifetime.
+
+---
+
+## Configuration
+
+### Environment
+
+Reuses `NEXT_PUBLIC_API_URL` from the HTTP layer — **bare origin** (no `/api/v{n}` suffix). The WS client strips any accidental version path and appends the namespace:
+
+```
+NEXT_PUBLIC_API_URL=https://api.example.com   →  wss://api.example.com/ws
+NEXT_PUBLIC_API_URL=                          →  /ws   (same-origin)
+```
+
+No new env var. If you change the WS namespace server-side, override via `createWsClient({ namespace: '/chat' })` or the `WS_NAMESPACE` constant.
+
+### Constants
+
+| Constant | Default | Meaning |
+|---|---|---|
+| `WS_NAMESPACE` | `/ws` | Server-side namespace path |
+| `WS_HEARTBEAT_INTERVAL_MS` | `25_000` | Application-level `ping` cadence. Must be strictly less than the server's per-socket TTL |
+| `WS_RECONNECTION_DELAY_MIN_MS` | `1_000` | Socket.IO reconnection base delay |
+| `WS_RECONNECTION_DELAY_MAX_MS` | `10_000` | Socket.IO reconnection cap (exponential backoff) |
+
+Tune these only if you've changed the corresponding values on the server — drift can cause socket TTLs to expire mid-connection.
+
+---
+
+## Architecture
+
+```
+                  ┌───────────────────────────────────┐
+                  │  React component                  │
+                  │   useWsStatus / useWsEvent /      │
+                  │   useWsEmit                       │
+                  └────────┬──────────────────┬───────┘
+              reads state  │                  │  emits / subscribes
+                           ▼                  ▼
+                  ┌──────────────┐   ┌──────────────────┐
+                  │  ws Redux    │   │  wsClient        │
+                  │  slice       │◀──┤  (singleton)     │
+                  │              │   │                  │
+                  │  status      │   │  socket.io-client│
+                  │  socketId    │   │  + heartbeat     │
+                  │  lastError   │   │  + force-disc    │
+                  └──────────────┘   └────────┬─────────┘
+                          ▲                   │
+                          │                   │ WSS / transports:['websocket']
+                          │  bridge           ▼
+                          │             ┌─────────────────┐
+                          └─────────────┤  Server /ws     │
+                            dispatches   │  gateway       │
+                                         └─────────────────┘
+```
+
+- **`wsClient`** owns one underlying socket. Lifecycle (connect, reconnect, heartbeat, force-disconnect) lives here.
+- **The bridge** subscribes to `wsClient`'s lifecycle emitter and dispatches into the ws slice. It is the **only** code path that touches the slice — never dispatch into it from feature code.
+- **Hooks** read state from the slice (`useWsStatus`) or talk to the socket (`useWsEvent`, `useWsEmit`).
+- **Connection is lazy.** `wsClient.connect()` is called automatically by the first `useWsEvent` subscriber. No subscribers, no socket — the transport doesn't open at module load.
+
+---
+
+## In-depth usage guide
+
+This section walks through every realistic scenario you'll hit. Read top-to-bottom on your first integration, or jump to a specific subsection later.
+
+### Authentication modes
+
+Sessions are HttpOnly cookies everywhere (see the HTTP README). The socket handshake carries them without any code on your side.
+
+#### Cookie sessions (default)
+
+After sign-in the API sets its session cookie. When the socket connects, the browser attaches that cookie to the Socket.IO handshake (`withCredentials: true`) and the gateway authenticates it.
+
+```tsx
+'use client';
+
+import { useWsEvent } from '@/lib/ws';
+
+export function Notifications() {
+  // The cookie does all the auth work. Just subscribe.
+  useWsEvent('error', (err) => logger.warn({ err }, 'ws error'));
+  return null;
+}
+```
+
+When the session cookie expires the gateway disconnects the socket; the next HTTP call refreshes the session and Socket.IO reconnects with the fresh cookie. One short blip.
+
+#### Custom handshake auth (`auth` provider)
+
+Some gateways expect a token in `handshake.auth` (a short-lived WS ticket issued by the API, a device token in a webview). Give the client an `auth` provider; it runs on every connect and reconnect, so the value is always fresh:
+
+```ts
+import { createWsClient } from '@/lib/ws';
+
+export const chatWsClient = createWsClient({
+  namespace: '/chat',
+  auth: async () => {
+    const ticket = await http.post<{ ticket: string }>('/ws/ticket');
+    return ticket.ok ? { token: ticket.data.ticket } : undefined;
+  },
+});
+```
+
+Returning `undefined` sends no auth payload. When a provider is configured and yields nothing, `connect()` rejects with `WS_AUTH_REQUIRED` before opening the socket, so a missing credential is a visible failure rather than a silent one.
+
+#### Anonymous mode (no auth at all)
+
+Opt-in per-call. Whether the server admits the connection (and what global cap it enforces) is up to the server. When admitted, only handlers the server marks public are reachable — typically things like `ping`, `presence:subscribe`, `presence:unsubscribe`.
+
+```ts
+await wsClient.connect({ anonymous: true });
+```
+
+Use this when you want a public-presence widget on a landing page or a "currently online" badge without forcing visitors to sign in.
+
+### Connection lifecycle in practice
+
+Most apps never call `connect()` explicitly — the hooks lazy-trigger it. But there are a few cases where you'll want explicit control:
+
+```tsx
+'use client';
+
+import { useEffect } from 'react';
+import { wsClient } from '@/lib/ws';
+
+// 1. Connect after auth is known to be ready (avoids racing with login flow):
+export function AppShell() {
+  const { isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    wsClient.connect().catch(() => {/* state is mirrored to Redux already */});
+    return () => wsClient.disconnect();
+  }, [isLoggedIn]);
+
+  return <Layout />;
+}
+
+// 2. Connect anonymously for public pages, upgrade to authenticated after login:
+export function LandingPage() {
+  useEffect(() => {
+    wsClient.connect({ anonymous: true });
+    return () => wsClient.disconnect({ permanent: true });
+  }, []);
+  return <Hero />;
+}
+```
+
+**`disconnect()` vs `disconnect({ permanent: true })`**
+
+- `disconnect()` — closes the socket, but the underlying socket.io Manager remains. Calling `connect()` again reuses it (faster reconnect).
+- `disconnect({ permanent: true })` — also removes every listener and nulls out the socket reference. The next `connect()` builds everything from scratch. Use this for logout flows where you want zero state from the previous session to leak forward.
+
+**Status transitions you'll see in the Redux slice:**
+
+```
+idle ──connect()──▶ connecting ──handshake ok──▶ connected
+                                       │
+                                       │ transport closes (network)
+                                       ▼
+                                  reconnecting ──handshake ok──▶ connected
+                                       │
+                                       │ user calls disconnect()
+                                       │ or server force-disconnect reconnectable=false
+                                       ▼
+                                  disconnected
+```
+
+### Listening to server events
+
+`useWsEvent(event, handler)` is the default tool. It:
+- Subscribes on mount.
+- Unsubscribes on unmount or when `event` changes.
+- Triggers a lazy `connect()` on first mount.
+- Uses a stable handler ref internally — inline arrows don't cause re-subscriptions on every render.
+
+```tsx
+useWsEvent('presence:online', (payload) => {
+  // payload is typed as { userId: string; timestamp: number }
+  toast(`${payload.userId} just came online`);
+});
+```
+
+#### Conditional subscriptions
+
+Pass the event name conditionally only if you really need to — the hook re-subscribes when `event` changes:
+
+```tsx
+const event = userId ? 'presence:online' : null;
+useWsEvent(event ?? 'presence:online', (p) => { /* still typed */ });
+```
+
+Most of the time you want the subscription unconditionally and a guard inside the handler:
+
+```tsx
+useWsEvent('presence:online', (payload) => {
+  if (payload.userId !== targetUserId) return;
+  /* ... */
+});
+```
+
+#### Multiple subscriptions in one component
+
+Each `useWsEvent` call is independent. The hook handles cleanup individually.
+
+```tsx
+useWsEvent('presence:online',  handleOnline);
+useWsEvent('presence:offline', handleOffline);
+useWsEvent('error',            handleError);
+```
+
+#### Subscribing to system events for diagnostics
+
+Useful in dev / debug consoles:
+
+```tsx
+useWsEvent('error',                  (e) => console.warn('[ws] error', e));
+useWsEvent('auth:error',             (e) => console.error('[ws] auth error', e));
+useWsEvent('auth:force:disconnect',  (p) => console.warn('[ws] forced disconnect', p));
+useWsEvent('pong',                   ({ timestamp }) => debugRtt(Date.now() - timestamp));
+```
+
+### Sending events to the server
+
+`useWsEmit()` returns a stable, fully-typed emit function. It's safe to put in a `useCallback` dependency array.
+
+```tsx
+const emit = useWsEmit();
+emit('presence:subscribe', { userId });    // returns true / false
+```
+
+Return value: `true` when the socket was open and the event was dispatched; `false` when the socket was disconnected (the event is dropped, not queued).
+
+#### Emitting in response to user actions
+
+```tsx
+function ChatInput({ roomId }: { roomId: string }) {
+  const emit = useWsEmit();
+  const [text, setText] = useState('');
+
+  const send = () => {
+    // Assuming you've declared 'message:send' via declaration merging:
+    const ok = emit('message:send', { roomId, content: text });
+    if (!ok) {
+      toast('Not connected — try again in a moment');
+      return;
+    }
+    setText('');
+  };
+
+  return /* ... */;
+}
+```
+
+#### Emitting on effect mount (without `useWsEvent`)
+
+If you only need to emit, not subscribe, drive it from `useWsStatus`:
+
+```tsx
+function PresenceSubscription({ userId }: { userId: string }) {
+  const { isConnected } = useWsStatus();
+  const emit = useWsEmit();
+
+  useEffect(() => {
+    if (!isConnected) return;
+    emit('presence:subscribe', { userId });
+    return () => { emit('presence:unsubscribe', { userId }); };
+  }, [isConnected, userId, emit]);
+
+  return null;
+}
+```
+
+**Note:** `useWsEmit` alone does NOT trigger a lazy connect (it can't — there's nothing to subscribe to yet). If you need a socket without subscribing to anything, call `wsClient.connect()` from a `useEffect`. In practice every app subscribes to at least one event somewhere.
+
+### Reading and reacting to connection state
+
+`useWsStatus()` returns each slice field as an independent selector — components only re-render when the field they read changes.
+
+```tsx
+const {
+  status,                  // 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
+  isConnected,             // boolean — convenience for status === 'connected'
+  isDisconnectedFatally,   // true when reconnectable === false (server denial)
+  socketId,                // current socket id, or null
+  lastError,               // last WsErrorPayload, or null
+  forceDisconnectReason,   // WsDisconnectReason | null
+  reconnectable,           // boolean | null — branch on this, not on `reason`
+} = useWsStatus();
+```
+
+#### A connection-status badge
+
+```tsx
+function ConnectionBadge() {
+  const { status } = useWsStatus();
+  const colour = {
+    idle: 'gray',
+    connecting: 'amber',
+    connected: 'green',
+    reconnecting: 'amber',
+    disconnected: 'red',
+  }[status];
+  return <Dot colour={colour} title={status} />;
+}
+```
+
+#### Reacting to fatal disconnects
+
+When the server force-disconnects with `reconnectable: false` (session revoked, rate limited, etc.), `isDisconnectedFatally` flips true. Use it to drive the "you've been signed out" UI:
+
+```tsx
+function SessionGuard() {
+  const { isDisconnectedFatally, forceDisconnectReason } = useWsStatus();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isDisconnectedFatally) return;
+    if (forceDisconnectReason === 'session_revoked') {
+      router.push('/login?reason=signed-out-elsewhere');
+    } else if (forceDisconnectReason === 'max_connections') {
+      toast('Too many devices connected. Close another tab to continue.');
+    }
+  }, [isDisconnectedFatally, forceDisconnectReason, router]);
+
+  return null;
+}
+```
+
+#### Reading raw selectors for advanced cases
+
+If `useWsStatus` is too coarse (you only care about one field, want shallow-equal memoisation, etc.), use the named selectors directly with `useAppSelector`:
+
+```tsx
+import { useAppSelector } from '@/store/hooks';
+import { selectWsLastError } from '@/lib/ws';
+
+const error = useAppSelector(selectWsLastError);
+```
+
+### Presence (online/offline tracking)
+
+The default event map includes `presence:*` events for tracking online/offline state. To watch a specific user, subscribe at the WS level and let the slice / hooks fan the updates out:
+
+```tsx
+function UserPresenceDot({ userId }: { userId: string }) {
+  const { isConnected } = useWsStatus();
+  const emit = useWsEmit();
+  const [online, setOnline] = useState<boolean | null>(null);
+
+  // Subscribe / unsubscribe on the WS gateway
+  useEffect(() => {
+    if (!isConnected) return;
+    emit('presence:subscribe', { userId });
+    return () => { emit('presence:unsubscribe', { userId }); };
+  }, [isConnected, userId, emit]);
+
+  // Snapshot — the server sends this once after subscribe
+  useWsEvent('presence:status', ({ userId: uid, status }) => {
+    if (uid === userId) setOnline(status === 'online');
+  });
+
+  // Live updates
+  useWsEvent('presence:online',  ({ userId: uid }) => { if (uid === userId) setOnline(true); });
+  useWsEvent('presence:offline', ({ userId: uid }) => { if (uid === userId) setOnline(false); });
+
+  return <Dot colour={online ? 'green' : online === false ? 'gray' : 'transparent'} />;
+}
+```
+
+**Per-socket cap:** servers commonly enforce a maximum number of presence subscriptions per socket. If you need to watch more users than the server allows, design around it — e.g. subscribe to a room and let the server fan out, rather than subscribing to every user individually.
+
+### Handling server-initiated disconnects
+
+The server can force a disconnect for several reasons. **Always branch on `reconnectable`, never on `reason`** — the reason is for logs/UX; the boolean is the contract.
+
+| `reason` | `reconnectable` | Client behaviour | UI guidance |
+|---|---|---|---|
+| `session_revoked` | `false` | Auto-reconnect is **disabled** | Route to login; clear in-memory user state |
+| `max_connections` | `false` | Auto-reconnect is **disabled** | Show "device limit reached"; suggest closing other tabs |
+| `rate_limited` | `false` | Auto-reconnect is **disabled** | Show "too many connection attempts"; back off ~60 s before letting the user retry |
+| `roles_changed` | `true` | Socket.IO reconnects transparently | No UI; permissions refresh on the new handshake |
+| `max_age` | `true` | Socket.IO reconnects transparently | No UI |
+| `server_shutdown` | `true` | Socket.IO reconnects transparently | No UI; new connection lands on a healthy node |
+
+You typically only need a single top-level component handling all of these:
+
+```tsx
+function WsForceDisconnectHandler() {
+  const { forceDisconnectReason, reconnectable } = useWsStatus();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!forceDisconnectReason) return;
+    if (reconnectable) return; // operational — Socket.IO handles it
+
+    switch (forceDisconnectReason) {
+      case 'session_revoked':
+        clearAuthState();
+        router.push('/login?reason=signed-out-elsewhere');
+        break;
+      case 'max_connections':
+        toast.error('Maximum device limit reached. Close another tab.');
+        break;
+      case 'rate_limited':
+        toast.error('Too many connection attempts. Try again in a minute.');
+        break;
+    }
+  }, [forceDisconnectReason, reconnectable, router]);
+
+  return null;
+}
+```
+
+Mount it once near the root of the authenticated app shell.
+
+### Public / anonymous flows
+
+Anonymous mode reaches only the handlers the server marks public — typically `ping`, `presence:subscribe`, and `presence:unsubscribe`. That's usually enough to build a "live visitor count" or public-presence widget without forcing authentication.
+
+```tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useWsEvent, wsClient } from '@/lib/ws';
+
+export function LandingPagePresenceCount() {
+  const [online, setOnline] = useState(0);
+
+  useEffect(() => {
+    // Open a public socket on mount, close on unmount.
+    wsClient.connect({ anonymous: true });
+    return () => wsClient.disconnect({ permanent: true });
+  }, []);
+
+  useWsEvent('presence:online',  () => setOnline((n) => n + 1));
+  useWsEvent('presence:offline', () => setOnline((n) => Math.max(0, n - 1)));
+
+  return <span>{online} people online</span>;
+}
+```
+
+**Upgrading from anonymous to authenticated after login:** call `wsClient.disconnect({ permanent: true })` first, then `wsClient.connect()` (without `anonymous`). The handshake re-runs with credentials.
+
+### Multi-namespace apps
+
+The default `wsClient` connects to `/ws`. For separate gateways like `/chat` or `/notifications`, create dedicated clients with `createWsClient`:
+
+```ts
+// src/features/chat/client.ts
+import { createWsClient } from '@/lib/ws';
+
+export const chatWsClient = createWsClient({ namespace: '/chat' });
+```
+
+Each client is an independent `WsClient` instance with its own socket, heartbeat, and lifecycle. They share the same `socket.io-client` Manager only if you pass the same URL — by default, separate URLs mean separate Managers.
+
+The default Redux bridge is wired to `wsClient` only. If you want connection state for a custom client in Redux too, wire your own bridge in a custom slice — the `attachWsBridge` function works against any `WsClient`. Alternatively, keep the custom client's state local to its feature.
+
+```ts
+// Custom slice for chat connection state
+import { attachWsBridge } from '@/lib/ws';
+import { chatWsClient } from '@/features/chat/client';
+
+// Inside a provider effect:
+useEffect(() => attachWsBridge(chatWsClient, dispatch), [dispatch]);
+```
+
+### Adding custom feature events
+
+`ClientToServerEvents` / `ServerToClientEvents` in `src/lib/ws/types/events.ts` are the contract. To extend, use TypeScript declaration merging — keep the merge file near the feature that introduces the event:
+
+```ts
+// src/features/chat/types/ws-events.ts
+import '@/lib/ws'; // ensure base interface is loaded
+
+declare module '@/lib/ws' {
+  interface ClientToServerEvents {
+    'message:send': (payload: { roomId: string; content: string }) => void;
+  }
+  interface ServerToClientEvents {
+    'message:new': (payload: {
+      id: string;
+      roomId: string;
+      authorId: string;
+      content: string;
+      createdAt: string;
+    }) => void;
+  }
+}
+```
+
+Import that file once at app load (e.g. from a root `app/[locale]/layout.tsx` or a `features/<feature>/index.ts` barrel that's already imported). Then in any feature file:
+
+```tsx
+const emit = useWsEmit();
+emit('message:send', { roomId, content });   // fully typed
+
+useWsEvent('message:new', (msg) => {           // fully typed
+  appendToTimeline(msg);
+});
+```
+
+**Coordinate with the server.** Events not registered server-side are silently dropped. Add the handler there first; then add the frontend declarations.
+
+### Imperative use outside React
+
+The `wsClient` singleton is callable from anywhere in the browser bundle. Useful for non-React code paths — analytics, debug consoles, Redux thunks, etc.
+
+```ts
+import { wsClient } from '@/lib/ws';
+
+// In a Redux thunk:
+export const sendChatMessage = (roomId: string, content: string) =>
+  (dispatch, getState) => {
+    if (!wsClient.isConnected()) {
+      dispatch(showError('Not connected'));
+      return;
+    }
+    wsClient.emit('message:send', { roomId, content });
+  };
+
+// In a debug-console helper exposed for QA:
+declare global { interface Window { __ws: typeof wsClient } }
+window.__ws = wsClient;
+```
+
+`wsClient` works correctly even before any React component renders — it's a lazy proxy. The first method call constructs the underlying instance.
+
+### Cleanup on logout
+
+Sign-out is a Server Action (`signOut` in `@/features/account`); the WS side is torn down around it:
+
+```ts
+async function logout() {
+  // 1. Disconnect WS permanently — drop all listeners + socket reference.
+  wsClient.disconnect({ permanent: true });
+
+  // 2. Reset the WS slice to clear stale status / lastError / etc.
+  store.dispatch(wsReset());
+
+  // 3. The action calls the API and relays its cookie-clearing headers.
+  await signOut();
+
+  // 4. Drop client caches that held user data.
+  queryClient.clear();
+
+  // 5. Route to sign-in.
+  router.replace(AppPaths.auth.login);
+}
+```
+
+**Why `permanent: true`?** A plain `disconnect()` keeps the Manager alive so a future `connect()` is faster. But on logout, you want zero state from the previous session — including any in-flight reconnection attempts. `permanent: true` guarantees a clean slate.
+
+### Testing components that use the WS layer
+
+For component tests, mock `wsClient` per-test so you can assert on subscribe/emit calls without opening a real socket (`test/setup.dom.ts` already wires jest-dom and cleanup):
+
+```tsx
+import { renderHook, act } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { TestProviders } from '../../test/test-utils';
+
+const onEventMock = vi.fn();
+const emitMock = vi.fn().mockReturnValue(true);
+const getStatusMock = vi.fn().mockReturnValue('connected');
+
+vi.mock('@/lib/ws/client', () => ({
+  wsClient: {
+    onEvent: (...args) => { onEventMock(...args); return () => {}; },
+    emit: emitMock,
+    getStatus: getStatusMock,
+    connect: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+const { useWsEvent, useWsEmit } = await import('@/lib/ws');
+
+describe('MyChatPanel', () => {
+  it('subscribes to message:new and emits message:send', () => {
+    const { result } = renderHook(() => /* ... */, { wrapper: TestProviders });
+    expect(onEventMock).toHaveBeenCalledWith('message:new', expect.any(Function));
+
+    act(() => { result.current.send('hi'); });
+    expect(emitMock).toHaveBeenCalledWith('message:send', { content: 'hi' });
+  });
+});
+```
+
+For end-to-end-style tests of the client itself (not feature code), see `src/lib/ws/client/ws-client.test.ts` and the `FakeSocket` test utility in `src/lib/ws/__test-utils__/fake-socket.ts`.
+
+---
+
+## API reference
+
+### `wsClient` (default singleton)
+
+| Method | Returns | Notes |
+|---|---|---|
+| `connect(opts?)` | `Promise<void>` | Opens the socket. `{ anonymous: true }` to skip auth. Idempotent. |
+| `disconnect(opts?)` | `void` | Closes the socket. `{ permanent: true }` removes all listeners. |
+| `getStatus()` | `WsStatus` | Current connection status (matches the slice). |
+| `getSocketId()` | `string \| null` | Current socket id or null when disconnected. |
+| `isConnected()` | `boolean` | Convenience for `status === 'connected'`. |
+| `on(event, h)` | `() => void` | Subscribe to a lifecycle event (used by the bridge — rarely needed in feature code). |
+| `onEvent(event, h)` | `() => void` | Subscribe to a server→client event (used by hooks). |
+| `emit(event, ...)` | `boolean` | Emit a client→server event. Returns false when disconnected. |
+
+### `createWsClient(opts?)`
+
+Build an additional client for a different namespace, custom URL, or custom `socket.io-client` options. Used for multi-namespace apps (`/chat`, `/notifications`). Each instance is independent.
+
+```ts
+import { createWsClient } from '@/lib/ws';
+
+export const chatWsClient = createWsClient({ namespace: '/chat' });
+```
+
+### Hooks
+
+| Hook | Purpose |
+|---|---|
+| `useWsStatus()` | Read connection state from Redux. |
+| `useWsEvent(event, handler)` | Subscribe to a server event. Lazy connect on first call. |
+| `useWsEmit()` | Stable, typed emit function. |
+
+### Selectors
+
+Exported from `@/lib/ws`. Use them with `useAppSelector` when `useWsStatus` is too coarse:
+
+`selectWsStatus`, `selectWsSocketId`, `selectWsLastError`, `selectWsForceDisconnectReason`, `selectWsReconnectable`, `selectWsConnectedAt`, `selectWsAnonymous`, `selectWsIsConnected`, `selectWsIsDisconnectedFatally`.
+
+### Types
+
+All exported from `@/lib/ws`:
+
+- **Events:** `ClientToServerEvents`, `ServerToClientEvents`, `ClientEventName`, `ServerEventName`
+- **Payloads:** `WsErrorPayload`, `WsForceDisconnectPayload`, `WsPongPayload`, `WsPresencePayload`, `WsPresenceStatusPayload`
+- **Disconnect:** `WS_DISCONNECT_REASON` (const), `WsDisconnectReason` (union), `isReconnectableReason()`
+- **Transport:** `WsStatus`, `WsClientOptions`, `WsConnectOptions`, `WsAuthProvider`
+
+---
+
+## Troubleshooting
+
+### `WsSsrError: connect() was called in a server context`
+
+You imported `wsClient` or one of its hooks into a Server Component. The hooks ship with `'use client'` so this almost always means an imperative call (`wsClient.connect()`) is happening at module top-level. Wrap it in `useEffect` or move it into a client component.
+
+### "Status stays `idle` forever"
+
+No subscriber has triggered the lazy connect. Either render a component that calls `useWsEvent` / `useWsEmit`, or call `wsClient.connect()` explicitly from an effect.
+
+### "Connected but events don't arrive"
+
+The event name in `useWsEvent` doesn't match what the server emits. Check:
+1. The server-side handler is registered under the same event name.
+2. The frontend declares the same name in `ServerToClientEvents`.
+3. CORS allows your origin — Socket.IO uses the same CORS gate as HTTP.
+
+### "Server keeps disconnecting me with `max_age`"
+
+Many servers enforce a maximum connection age (e.g. 24 h). The client auto-reconnects on this reason — if you're seeing rapid cycles, check that `reconnectable: true` is being honoured (your custom force-disconnect handler may be tearing things down).
+
+### "Sessions revoked when I refresh the page"
+
+Cookie sessions rely on the browser carrying the session cookie. If your dev setup has the frontend on a different origin from the API (e.g. `localhost:3000` vs `localhost:8080`), check whatever `SameSite` / cookie-domain settings the server uses.
+
+### "Connection drops every ~2 minutes"
+
+Application-level heartbeat isn't reaching the server. The client sends `ping` every 25 s — if a corporate proxy or service-worker is blocking outgoing pings, the server's socket TTL expires and the next push event finds no socket. Check that `transports: ['websocket']` is actually negotiated (look for `Sec-WebSocket-Protocol` in DevTools) and that no service worker is intercepting `/ws`.
+
+### "Two sockets open at once during dev"
+
+React 18+ in Strict Mode double-invokes effects in dev. The lazy-connect path is idempotent (a second `connect()` while connecting is a no-op), but if you wrote your own `useEffect` calling `wsClient.connect()`, make sure the cleanup function calls `wsClient.disconnect()` — Strict Mode's teardown-then-rerun is the safety check for exactly this kind of bug.
+
+---
+
+## Related docs
+
+- HTTP layer (sibling) → `src/lib/http/README.md`

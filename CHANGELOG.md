@@ -2,7 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.0-alpha.0] — in progress
+
+v2 is a greenfield rebuild on a new branch; proven modules were ported, everything else was rewritten. Consumers upgrade through next-maker 5, not by hand.
+
+### Breaking
+
+- **Toolchain**: pnpm 11 (with `minimumReleaseAge` and `allowBuilds`), TypeScript 7 (`tsc`) with the 6.x API from `@typescript/typescript6` for the deprecated-API scan, Vitest 5 split into `node` and `jsdom` projects, Biome 2.5.12, ESM project (`"type": "module"`), Node 24 running scripts natively (tsx removed). Renovate replaces Dependabot.
+- **Next 16.3**: `cacheComponents`, `partialPrefetching`, and `typedRoutes` are on; `experimental.taint` is enabled. `next typegen` runs before `tsc`.
+- **HTTP layer moved to `src/lib/http`** and rewritten on one core with pluggable adapters. `fetch` is the universal default; `axiosAdapter` (`@/lib/http/adapters/axios`) is an opt-in transport on the same contract and never enters a bundle unless imported. Results are a plain `{ ok, data } | { ok, error }` union (`@/types`) instead of `Either` classes; errors are `HttpError` (was `ApiException`) with a serialisable `toPlain()`. New: body-type-aware requests (FormData, Blob, streams pass through; falsy JSON values are sent), `204`/empty bodies resolve to `undefined`, bounded retries with jitter and `Retry-After` for idempotent methods, optional per-call `schema` validation (`ERR_RESPONSE_INVALID`), `skipAuth`, and Next `next` fetch options.
+- **Auth is cookie-only in every environment.** Bearer/localStorage mode, `SAVE_AUTH_TOKENS`, `react-secure-storage`, and the token store are gone. The browser refreshes a session once on 401 through the new same-origin `POST /api/auth/refresh` Route Handler, which forwards cookies to the API and relays `Set-Cookie`; the server never refreshes. `API_INTERNAL_URL` lets containers reach the API over a private network.
+- **WebSocket layer moved to `src/lib/ws`**, cookie-only with an optional `auth` provider for token handshakes; the dead token-renew surface is removed; the bridge is idempotent and now records `anonymous`.
+- **Persistence**: `redux-persist` and `PersistGate` are replaced by listener-middleware persistence in `src/store/persistence.ts` (versioned envelopes, forward migrations, debounced writes, `pagehide` flush, `useAppHydrated`). The root reducer uses `combineSlices` for lazy slice injection.
+- **i18n**: locale comes from `next/root-params`; `setRequestLocale` and the `[locale]` guards in layouts and pages are gone. Shared `formats` are typed through `AppConfig`.
+- **Theme**: `@teispace/next-themes` 3 rendered from the server layout with the anti-flash script in `<head>` and the Tailwind preset; `CustomThemeProvider` is removed.
+- **Env**: `@teispace/env` 1.0; `NEXT_PUBLIC_APP_URL` uses `devDefault` and is required in production builds; server variables are no longer listed in `runtimeEnv`.
+- **Security**: `src/lib/security` builds the headers and CSP. `CSP_MODE=static` (default) keeps pages prerenderable; `CSP_MODE=nonce` is the strict per-request policy from the proxy. `X-XSS-Protection` is removed; `Permissions-Policy` and `Cross-Origin-Opener-Policy` are added.
+- **Testing**: MSW-backed integration tests for the HTTP core over both adapters, proxy matcher tests via Next's testing helpers, coverage thresholds as a ratchet, and Playwright end-to-end tests against a production build (`pnpm test:e2e`, Chromium in CI).
+- **Docker**: pnpm multi-stage build with a store cache, health check, and declared build args. Standalone output is opt-in through `BUILD_STANDALONE=true` (the Dockerfile sets it); `pnpm start` works again for everyone else.
+
+### Added
+
+- **Data layer**. `src/lib/query` wraps TanStack Query 5: a request-scoped `QueryClient` on the server and a per-tab one in the browser, `prefetchQuery` (failures are left to the client), `HydrateQueries`, and `unwrapForQuery` to bridge the transport's `Result`. `src/lib/actions` wraps next-safe-action 8 with `actionClient` (input validation, request id, timing log, `HttpError` mapped to a plain `ActionError`, unknown errors never echoed) and `authActionClient` (loads the session, refuses anonymous callers with a 401 `ActionError`). `src/lib/auth` holds `getCurrentUser` (React-`cache`d, never `use cache`d), `requireUser` (redirects to sign-in with a return path), and `relaySetCookies` so Server Actions can replay the API's `Set-Cookie` headers.
+- **Reference feature `src/features/account`** shows the full shape: `api/schema.ts` (zod contracts, inferred types), `api/server.ts` (`use cache` + `cacheTag` DAL over `publicServerHttp`), `api/actions.ts` (`signOut` through `authActionClient`), `api/queries.ts` (`queryOptions` + `useSuspenseQuery`), server and client components, a client-safe `index.ts` and a `server.ts` barrel, and unit, component, and end-to-end tests. Route groups `(marketing)` and `(app)` with a `/dashboard` page gated by `requireUser`.
+- `publicServerHttp` (`@/lib/http/server`): the server client without cookie or request-id forwarding, the only one safe inside `use cache` and static prerenders. `RequestOptions.onResponse` exposes the final response for header-only consumers.
+- `HttpClient` resolves cookie and request-id headers outside its transport error handling, so Next's prerender interrupts propagate instead of being logged as network failures.
+- `getServerApiBaseUrl` resolves against `NEXT_PUBLIC_APP_URL` when no API origin is configured, because a relative `/api` cannot be fetched from the server.
+- `pnpm typegen` runs `next typegen` in development mode unless `NODE_ENV` is set, so a fresh clone type-checks without a `.env` file.
+- **Metadata**: `src/app/manifest.ts`, generated `icon.png` / `apple-icon.png` (`pnpm icons`, replace with real artwork), a `viewport` export with light/dark `themeColor` and `colorScheme`, and `src/lib/seo` with a `JsonLd` component plus `websiteJsonLd` / `organizationJsonLd` / `breadcrumbJsonLd` builders (script-safe serialisation).
+- `pnpm check:deprecated` judges calls by the overload TypeScript actually resolved and follows import aliases, so a deprecated re-export is caught while a library that deprecates one overload of a DOM method no longer trips the gate.
+- **Composition manifest** (`next-maker.json`): the starter now describes its own optional features (files, packages, scripts, env keys, anchor comments, overlays) so next-maker 5 composes projects from it instead of maintaining cleanup lists. Overlays under `.next-maker/overlays/` provide the no-i18n app shell, the Zustand store, the Axios universal client, and npm/yarn/bun Docker and CI variants. `test/next-maker-manifest.test.ts` fails when the manifest and the tree disagree. See `docs/composition.md`.
+- **State option**: `zustand` ships as a first-class alternative to Redux (store, persist middleware with versioned migrations, `StoreProvider`, hooks, counter example, tests) selected at project creation.
+- `pnpm api:types` generates `src/types/api.generated.d.ts` from an OpenAPI document.
+- CI builds the standalone artifact with `BUILD_STANDALONE=true` explicitly.
+- **Same-origin API proxy (BFF)**: `src/app/api/backend/[...path]/route.ts` forwards browser calls to the API with sanitised cookies and the request id, streaming bodies both ways and relaying `Set-Cookie`. Selected with the `bff` option; the universal client then targets `/api/backend` in the browser.
+- **Section error boundaries**: `SectionErrorBoundary` (`@/components`) wraps `catchError` from `next/error` so a failing section shows a retry control instead of the route's `error.tsx`. Used around the home page sections.
+- **Docs**: rewritten for v2: `README.md`, `AGENTS.md`, `docs/structure.md`, `docs/data-layer.md`, `docs/ui-libraries.md`, `docs/migrating-from-1.x.md`, `docs/adr/`, and the HTTP, WebSocket, i18n, and feature guides.
+- **Observability**: `src/instrumentation.ts` logs every uncaught server error with its digest, route, and request id through pino (`onRequestError`), never the headers. The proxy stamps `X-Request-Id` on every request and response (a well-formed incoming id is kept), so the render, the server HTTP client, and the API share one id; `getRequestLogger()` (`@/lib/logger/request`) returns a child logger bound to it.
+
+## [1.1.0] — Unreleased on the 1.x line
 
 ### Security
 

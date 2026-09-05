@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { WS_DISCONNECT_REASON } from '@/lib/utils/ws';
+import { WS_DISCONNECT_REASON } from '@/lib/ws';
 
 import {
   wsConnectStarted,

@@ -2,7 +2,9 @@
 node_modules
 .next
 coverage
+test-results
+playwright-report
+e2e
 .DS_Store
 .env
 .env.local
-.yarn

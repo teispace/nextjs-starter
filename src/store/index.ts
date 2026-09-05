@@ -1,24 +1,31 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
 
+import { countPersistence } from '@/features/counter/store/persist';
 import { Environment } from '@/lib/enums';
 import { env } from '@/lib/env';
 
+import { createPersistence } from './persistence';
 import { rootReducer } from './rootReducer';
+import { webStorage } from './storage';
 
 export type AppState = ReturnType<typeof rootReducer>;
 
+/**
+ * One persistence instance per process: it owns the listener middleware and
+ * the storage keys. Register a new persisted slice by adding its entry here.
+ */
+export const persistence = createPersistence({
+  storage: webStorage,
+  entries: [countPersistence],
+  prefix: 'app',
+});
+
 export const makeStore = (preloadedState?: Partial<AppState>) => {
   return configureStore({
-    reducer: rootReducer,
+    reducer: persistence.reducer(rootReducer),
     preloadedState: preloadedState as AppState | undefined,
     devTools: env.NODE_ENV !== Environment.PRODUCTION,
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware({
-        serializableCheck: {
-          ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-        },
-      }),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().prepend(persistence.middleware),
   });
 };
 

@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { WsDisconnectReason, WsErrorPayload, WsStatus } from '@/lib/utils/ws';
+import type { WsDisconnectReason, WsErrorPayload, WsStatus } from '@/lib/ws';
 
 /**
  * WebSocket **transport** state.
@@ -12,7 +12,7 @@ import type { WsDisconnectReason, WsErrorPayload, WsStatus } from '@/lib/utils/w
  *
  * **Intentionally NOT persisted** — connection state across page reloads
  * is meaningless and would show stale info on first paint. Excluded from
- * `redux-persist` via the rootReducer composition.
+ * persistence by never being registered in `store/index.ts`.
  */
 export interface WsState {
   status: WsStatus;

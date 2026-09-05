@@ -1,0 +1,1 @@
+export { SectionErrorBoundary } from './SectionErrorBoundary';

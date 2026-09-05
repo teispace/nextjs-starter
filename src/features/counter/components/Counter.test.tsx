@@ -10,7 +10,7 @@ describe('Counter', () => {
     renderWithProviders(<Counter />, {
       messages,
       preloadedState: {
-        count: { value: 7, _persist: { version: -1, rehydrated: true } },
+        count: { value: 7 },
       },
     });
 

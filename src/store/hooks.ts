@@ -5,3 +5,6 @@ import type { AppDispatch, AppState, AppStore } from './index';
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<AppState>();
 export const useAppStore = useStore.withTypes<AppStore>();
+
+/** True once persisted slices have been rehydrated on the client. */
+export const useAppHydrated = (): boolean => useAppSelector((state) => state.persist.hydrated);
