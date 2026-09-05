@@ -115,6 +115,7 @@ Adding a variable: declare it in the right group in `src/lib/env/index.ts`, add 
 - [Internationalization](src/i18n/README.md)
 - [UI libraries: shadcn/ui, Radix, MUI, Mantine, HeroUI](docs/ui-libraries.md)
 - [Migrating from 1.x](docs/migrating-from-1.x.md)
+- [Composition manifest for next-maker](docs/composition.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Full project structure](docs/structure.md)
 - [Changelog](CHANGELOG.md)

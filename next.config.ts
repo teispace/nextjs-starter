@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
+// @next-maker:i18n
 import createNextIntlPlugin from 'next-intl/plugin';
 
+// @next-maker:analyzer
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
 import { isDevelopment } from './src/lib/config/constants';
@@ -9,6 +11,7 @@ import { securityHeaders } from './src/lib/security/headers';
 
 const nextConfig: NextConfig = {
   output: env.BUILD_STANDALONE ? 'standalone' : undefined,
+  // @next-maker:reactCompiler
   reactCompiler: true,
   // Partial prerendering with explicit caching: static shells stream
   // instantly, dynamic parts stream in. `use cache` / `cacheTag` are the only
@@ -38,9 +41,12 @@ const nextConfig: NextConfig = {
   ],
 };
 
+// @next-maker:i18n
 const withNextIntl = createNextIntlPlugin();
+/* @next-maker:analyzer:start */
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
+/* @next-maker:analyzer:end */
 
 export default bundleAnalyzer(withNextIntl(nextConfig));

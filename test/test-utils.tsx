@@ -1,21 +1,29 @@
 import type { ReactElement, ReactNode } from 'react';
 
+// @next-maker:i18n
 import { NextIntlClientProvider } from 'next-intl';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type RenderOptions, render } from '@testing-library/react';
+// @next-maker:state
 import { Provider } from 'react-redux';
 
+// @next-maker:state
 import { type AppState, type AppStore, makeStore } from '@/store';
+// @next-maker:i18n
 import type { SupportedLocale } from '@/types/i18n';
 
 type TestProvidersProps = {
   children: ReactNode;
-  store?: AppStore;
   queryClient?: QueryClient;
+  /* @next-maker:state:start */
+  store?: AppStore;
   preloadedState?: Partial<AppState>;
+  /* @next-maker:state:end */
+  /* @next-maker:i18n:start */
   messages?: Record<string, unknown>;
   locale?: SupportedLocale;
+  /* @next-maker:i18n:end */
 };
 
 /** A query client that never retries and drops its cache between tests. */
@@ -34,12 +42,17 @@ export const makeTestQueryClient = () =>
  */
 export function TestProviders({
   children,
-  store,
   queryClient,
+  /* @next-maker:state:start */
+  store,
   preloadedState,
+  /* @next-maker:state:end */
+  /* @next-maker:i18n:start */
   messages = {},
   locale = 'en',
+  /* @next-maker:i18n:end */
 }: TestProvidersProps) {
+  // @next-maker:state
   const testStore = store ?? makeStore(preloadedState);
   const testQueryClient = queryClient ?? makeTestQueryClient();
 
@@ -54,42 +67,42 @@ export function TestProviders({
   );
 }
 
-type ExtendedRenderOptions = Omit<RenderOptions, 'wrapper'> & {
-  store?: AppStore;
-  queryClient?: QueryClient;
-  preloadedState?: Partial<AppState>;
-  messages?: Record<string, unknown>;
-  locale?: SupportedLocale;
-};
+type ExtendedRenderOptions = Omit<RenderOptions, 'wrapper'> & Omit<TestProvidersProps, 'children'>;
 
 export function renderWithProviders(
   ui: ReactElement,
   {
-    store,
     queryClient,
+    /* @next-maker:state:start */
+    store,
     preloadedState,
+    /* @next-maker:state:end */
+    /* @next-maker:i18n:start */
     messages,
     locale,
+    /* @next-maker:i18n:end */
     ...renderOptions
   }: ExtendedRenderOptions = {},
 ) {
+  // @next-maker:state
   const testStore = store ?? makeStore(preloadedState);
   const testQueryClient = queryClient ?? makeTestQueryClient();
+  const providerProps = {
+    queryClient: testQueryClient,
+    // @next-maker:state
+    store: testStore,
+    /* @next-maker:i18n:start */
+    messages,
+    locale,
+    /* @next-maker:i18n:end */
+  };
 
   return {
+    // @next-maker:state
     store: testStore,
     queryClient: testQueryClient,
     ...render(ui, {
-      wrapper: ({ children }) => (
-        <TestProviders
-          store={testStore}
-          queryClient={testQueryClient}
-          messages={messages}
-          locale={locale}
-        >
-          {children}
-        </TestProviders>
-      ),
+      wrapper: ({ children }) => <TestProviders {...providerProps}>{children}</TestProviders>,
       ...renderOptions,
     }),
   };

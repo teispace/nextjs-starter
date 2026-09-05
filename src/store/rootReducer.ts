@@ -3,6 +3,7 @@ import { combineSlices } from '@reduxjs/toolkit';
 import { counterSlice } from '@/features/counter/store/counter.slice';
 
 import { persistSlice } from './persistence';
+// @next-maker:ws
 import { wsSlice } from './slices/ws.slice';
 
 /**
@@ -14,6 +15,11 @@ import { wsSlice } from './slices/ws.slice';
  * persisted. Rehydrating "connected: true" on first paint would lie about
  * the actual socket.
  */
-export const rootReducer = combineSlices(counterSlice, wsSlice, persistSlice);
+export const rootReducer = combineSlices(
+  counterSlice,
+  // @next-maker:ws
+  wsSlice,
+  persistSlice,
+);
 
 export type RootState = ReturnType<typeof rootReducer>;

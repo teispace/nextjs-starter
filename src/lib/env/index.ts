@@ -20,6 +20,7 @@ import { defineEnv, e } from '@teispace/env/next';
  */
 export const env = defineEnv({
   server: {
+    /* @next-maker:i18n:start */
     DEFAULT_TIMEZONE: e
       .string()
       .default('UTC')
@@ -28,6 +29,7 @@ export const env = defineEnv({
       .string()
       .default('en')
       .describe('Fallback locale when a request locale cannot be resolved.'),
+    /* @next-maker:i18n:end */
     API_INTERNAL_URL: e
       .url()
       .optional()

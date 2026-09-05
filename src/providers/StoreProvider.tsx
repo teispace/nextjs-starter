@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { Provider } from 'react-redux';
 
+// @next-maker:ws
 import { attachWsBridge, wsClient } from '@/lib/ws';
 import { type AppState, type AppStore, makeStore, persistence } from '@/store';
 
@@ -27,7 +28,9 @@ export const StoreProvider = ({ children, preloadedState }: StoreProviderProps) 
     const store = storeRef.current;
     if (!store) return;
     void persistence.hydrate(store.dispatch);
+    /* @next-maker:ws:start */
     return attachWsBridge(wsClient, store.dispatch);
+    /* @next-maker:ws:end */
   }, []);
 
   return <Provider store={storeRef.current}>{children}</Provider>;

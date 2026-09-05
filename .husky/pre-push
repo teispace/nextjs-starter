@@ -26,6 +26,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# @next-maker:tests:start
 # 4. Unit tests
 echo '🧪 Running tests...'
 pnpm test
@@ -33,5 +34,6 @@ if [ $? -ne 0 ]; then
     echo '❌ Tests failed. Fix before pushing.'
     exit 1
 fi
+# @next-maker:tests:end
 
 echo '✅ Pre-push validation passed. CI will run the production build.'

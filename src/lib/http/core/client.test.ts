@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { HTTP_ERROR_CODE, HttpError, ResponseValidationError } from '@/lib/errors';
 
+// @next-maker:axios
 import { axiosAdapter } from '../adapters/axios';
 import { fetchAdapter } from '../adapters/fetch';
 import type { Adapter } from '../types';
@@ -24,6 +25,7 @@ afterAll(() => server.close());
 
 const adapters: [string, () => Adapter][] = [
   ['fetch', () => fetchAdapter],
+  // @next-maker:axios
   ['axios', () => axiosAdapter()],
 ];
 

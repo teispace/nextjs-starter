@@ -1,0 +1,465 @@
+{
+  "manifestVersion": 1,
+  "starter": {
+    "name": "@teispace/nextjs-starter",
+    "version": "2.0.0-alpha.0",
+    "minCli": "5.0.0"
+  },
+  "options": {
+    "packageManager": {
+      "type": "choice",
+      "label": "Package manager",
+      "values": ["pnpm", "npm", "yarn", "bun"],
+      "default": "pnpm"
+    },
+    "state": {
+      "type": "choice",
+      "label": "Client state store",
+      "values": ["redux", "zustand", "none"],
+      "default": "redux"
+    },
+    "http": {
+      "type": "choice",
+      "label": "HTTP transport for the universal client",
+      "values": ["fetch", "axios", "both"],
+      "default": "fetch"
+    },
+    "ws": {
+      "type": "boolean",
+      "label": "WebSocket client (Socket.IO)",
+      "default": false,
+      "requires": {
+        "state": ["redux"]
+      }
+    },
+    "i18n": {
+      "type": "boolean",
+      "label": "Internationalization (next-intl)",
+      "default": true
+    },
+    "darkMode": {
+      "type": "boolean",
+      "label": "Dark mode (@teispace/next-themes)",
+      "default": true
+    },
+    "tests": {
+      "type": "boolean",
+      "label": "Unit and component tests (Vitest)",
+      "default": true
+    },
+    "e2e": {
+      "type": "boolean",
+      "label": "End-to-end tests (Playwright)",
+      "default": true,
+      "requires": {
+        "tests": [true]
+      }
+    },
+    "docker": {
+      "type": "boolean",
+      "label": "Dockerfile and docker-compose",
+      "default": false
+    },
+    "ci": {
+      "type": "boolean",
+      "label": "GitHub Actions and Renovate",
+      "default": false
+    },
+    "hooks": {
+      "type": "boolean",
+      "label": "Git hooks (Husky, lint-staged, commitlint)",
+      "default": true
+    },
+    "commitizen": {
+      "type": "boolean",
+      "label": "Commitizen prompt",
+      "default": true
+    },
+    "analyzer": {
+      "type": "boolean",
+      "label": "Bundle analyzer",
+      "default": false
+    },
+    "reactCompiler": {
+      "type": "boolean",
+      "label": "React Compiler",
+      "default": true
+    },
+    "openapi": {
+      "type": "boolean",
+      "label": "OpenAPI type generation",
+      "default": false
+    },
+    "communityFiles": {
+      "type": "multi",
+      "label": "Community files",
+      "values": ["CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "SECURITY.md"],
+      "default": []
+    },
+    "githubTemplates": {
+      "type": "boolean",
+      "label": "GitHub issue and PR templates",
+      "default": false
+    },
+    "agentRules": {
+      "type": "boolean",
+      "label": "AGENTS.md / CLAUDE.md coding-agent rules",
+      "default": true
+    }
+  },
+  "always": {
+    "remove": [
+      "CHANGELOG.md",
+      "LICENSE",
+      "docs/structure.md",
+      "docs/migrating-from-1.x.md",
+      "docs/adr/**",
+      "next-maker.json",
+      ".next-maker/**"
+    ]
+  },
+  "features": {
+    "state": {
+      "description": "A client-side store of any kind",
+      "when": {
+        "state": ["redux", "zustand"]
+      },
+      "off": {
+        "remove": ["src/features/counter/**", "src/providers/StoreProvider.tsx", "src/store/**"],
+        "anchors": ["state"],
+        "unwrapJsx": [
+          {
+            "file": "src/providers/RootProvider.tsx",
+            "tag": "StoreProvider"
+          },
+          {
+            "file": "test/test-utils.tsx",
+            "tag": "Provider"
+          }
+        ]
+      }
+    },
+    "redux": {
+      "description": "Redux Toolkit store with listener-middleware persistence",
+      "when": {
+        "state": ["redux"]
+      },
+      "off": {
+        "remove": [
+          "src/store/**",
+          "src/providers/StoreProvider.tsx",
+          "src/features/counter/store/**",
+          "src/features/counter/hooks/useCounter.ts"
+        ],
+        "packages": ["@reduxjs/toolkit", "react-redux", "redux"]
+      }
+    },
+    "zustand": {
+      "description": "Zustand store with persist middleware",
+      "when": {
+        "state": ["zustand"]
+      },
+      "on": {
+        "overlay": "zustand"
+      },
+      "off": {
+        "packages": ["zustand"]
+      }
+    },
+    "ws": {
+      "description": "Typed Socket.IO client with Redux bridge",
+      "when": {
+        "ws": [true]
+      },
+      "off": {
+        "remove": [
+          "src/lib/ws/**",
+          "src/store/slices/ws.slice.ts",
+          "src/store/slices/ws.slice.test.ts"
+        ],
+        "anchors": ["ws"],
+        "packages": ["socket.io-client"]
+      }
+    },
+    "i18n": {
+      "description": "next-intl routing, messages, and formats",
+      "when": {
+        "i18n": [true]
+      },
+      "off": {
+        "remove": [
+          "src/i18n/**",
+          "src/app/[locale]/**",
+          "src/types/i18n.ts",
+          "src/lib/config/app-locales.ts"
+        ],
+        "overlay": "no-i18n",
+        "anchors": ["i18n"],
+        "unwrapJsx": [
+          {
+            "file": "src/providers/RootProvider.tsx",
+            "tag": "NextIntlClientProvider"
+          },
+          {
+            "file": "test/test-utils.tsx",
+            "tag": "NextIntlClientProvider"
+          }
+        ],
+        "unwrapCall": [
+          {
+            "file": "next.config.ts",
+            "name": "withNextIntl"
+          }
+        ],
+        "packages": ["next-intl"],
+        "env": ["DEFAULT_TIMEZONE", "DEFAULT_LOCALE"]
+      }
+    },
+    "darkMode": {
+      "description": "Theme provider, anti-flash script, and Tailwind preset",
+      "when": {
+        "darkMode": [true]
+      },
+      "off": {
+        "remove": ["src/lib/theme/**"],
+        "anchors": ["darkMode"],
+        "unwrapJsx": [
+          {
+            "file": "src/app/[locale]/layout.tsx",
+            "tag": "ThemeProvider"
+          },
+          {
+            "file": "src/app/layout.tsx",
+            "tag": "ThemeProvider"
+          }
+        ],
+        "packages": ["@teispace/next-themes"]
+      }
+    },
+    "axios": {
+      "description": "Axios adapter for the HTTP core",
+      "when": {
+        "http": ["axios", "both"]
+      },
+      "off": {
+        "remove": ["src/lib/http/adapters/axios.ts"],
+        "anchors": ["axios"],
+        "packages": ["axios"]
+      }
+    },
+    "httpAxiosDefault": {
+      "description": "Universal client on the Axios adapter",
+      "when": {
+        "http": ["axios"]
+      },
+      "on": {
+        "overlay": "http-axios"
+      }
+    },
+    "tests": {
+      "description": "Vitest, Testing Library, MSW",
+      "when": {
+        "tests": [true]
+      },
+      "off": {
+        "remove": [
+          "vitest.config.ts",
+          "test/**",
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "src/lib/ws/__test-utils__/**"
+        ],
+        "anchors": ["tests"],
+        "devPackages": [
+          "vitest",
+          "@vitest/coverage-v8",
+          "jsdom",
+          "@vitejs/plugin-react",
+          "@testing-library/dom",
+          "@testing-library/jest-dom",
+          "@testing-library/react",
+          "@testing-library/user-event",
+          "msw"
+        ],
+        "scripts": ["test", "test:watch", "test:coverage"]
+      }
+    },
+    "e2e": {
+      "description": "Playwright against a production build",
+      "when": {
+        "e2e": [true]
+      },
+      "off": {
+        "remove": ["e2e/**", "playwright.config.ts"],
+        "anchors": ["e2e"],
+        "devPackages": ["@playwright/test", "@next/playwright"],
+        "scripts": ["test:e2e", "test:e2e:ui"]
+      }
+    },
+    "docker": {
+      "description": "Multi-stage Dockerfile and compose file",
+      "when": {
+        "docker": [true]
+      },
+      "off": {
+        "remove": ["Dockerfile", "docker-compose.yml", ".dockerignore"],
+        "anchors": ["docker"]
+      }
+    },
+    "ci": {
+      "description": "GitHub Actions workflow and Renovate config",
+      "when": {
+        "ci": [true]
+      },
+      "off": {
+        "remove": [".github/workflows/**", "renovate.json"]
+      }
+    },
+    "githubTemplates": {
+      "description": "Issue and pull request templates",
+      "when": {
+        "githubTemplates": [true]
+      },
+      "off": {
+        "remove": [".github/ISSUE_TEMPLATE/**", ".github/PULL_REQUEST_TEMPLATE.md"]
+      }
+    },
+    "hooks": {
+      "description": "Husky, lint-staged, commitlint",
+      "when": {
+        "hooks": [true]
+      },
+      "off": {
+        "remove": [".husky/**", "commitlint.config.mjs", ".lintstagedrc.mjs"],
+        "devPackages": [
+          "husky",
+          "@commitlint/cli",
+          "@commitlint/config-conventional",
+          "lint-staged"
+        ],
+        "scripts": ["prepare", "lint-staged"]
+      }
+    },
+    "commitizen": {
+      "description": "Guided conventional commits",
+      "when": {
+        "commitizen": [true]
+      },
+      "off": {
+        "remove": [".czrc"],
+        "devPackages": ["commitizen", "cz-conventional-changelog"],
+        "scripts": ["commit"],
+        "packageJsonKeys": ["config.commitizen"]
+      }
+    },
+    "analyzer": {
+      "description": "Bundle analyzer wrapper in next.config.ts",
+      "when": {
+        "analyzer": [true]
+      },
+      "off": {
+        "anchors": ["analyzer"],
+        "unwrapCall": [
+          {
+            "file": "next.config.ts",
+            "name": "bundleAnalyzer"
+          }
+        ],
+        "devPackages": ["@next/bundle-analyzer"],
+        "scripts": ["analyze"]
+      }
+    },
+    "reactCompiler": {
+      "description": "React Compiler",
+      "when": {
+        "reactCompiler": [true]
+      },
+      "off": {
+        "anchors": ["reactCompiler"],
+        "devPackages": ["babel-plugin-react-compiler"]
+      }
+    },
+    "openapi": {
+      "description": "openapi-typescript script",
+      "when": {
+        "openapi": [true]
+      },
+      "off": {
+        "remove": ["scripts/openapi-types.ts"],
+        "devPackages": ["openapi-typescript"],
+        "scripts": ["api:types"]
+      }
+    },
+    "codeOfConduct": {
+      "when": {
+        "communityFiles": ["CODE_OF_CONDUCT.md"]
+      },
+      "off": {
+        "remove": ["CODE_OF_CONDUCT.md"]
+      }
+    },
+    "contributing": {
+      "when": {
+        "communityFiles": ["CONTRIBUTING.md"]
+      },
+      "off": {
+        "remove": ["CONTRIBUTING.md"]
+      }
+    },
+    "security": {
+      "when": {
+        "communityFiles": ["SECURITY.md"]
+      },
+      "off": {
+        "remove": ["SECURITY.md"]
+      }
+    },
+    "agentRules": {
+      "when": {
+        "agentRules": [true]
+      },
+      "off": {
+        "remove": ["AGENTS.md", "CLAUDE.md"]
+      }
+    }
+  },
+  "packageManagers": {
+    "pnpm": {
+      "packageManager": "pnpm@11.25.0",
+      "lockfile": "pnpm-lock.yaml",
+      "engines": {
+        "pnpm": ">=11.0.0"
+      }
+    },
+    "npm": {
+      "lockfile": "package-lock.json",
+      "overlay": "pm-npm",
+      "remove": ["pnpm-workspace.yaml", "pnpm-lock.yaml"],
+      "engines": {
+        "npm": ">=11.0.0"
+      }
+    },
+    "yarn": {
+      "packageManager": "yarn@4.18.0",
+      "lockfile": "yarn.lock",
+      "overlay": "pm-yarn",
+      "remove": ["pnpm-workspace.yaml", "pnpm-lock.yaml"],
+      "engines": {
+        "yarn": ">=4.0.0"
+      }
+    },
+    "bun": {
+      "packageManager": "bun@1.4.2",
+      "lockfile": "bun.lock",
+      "overlay": "pm-bun",
+      "remove": ["pnpm-workspace.yaml", "pnpm-lock.yaml"],
+      "engines": {
+        "bun": ">=1.3.0"
+      }
+    }
+  },
+  "validateScript": {
+    "name": "validate",
+    "steps": ["ci:check", "type-check", "check:deprecated", "test", "build"]
+  }
+}

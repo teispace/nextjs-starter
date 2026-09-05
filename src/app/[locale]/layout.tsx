@@ -4,7 +4,9 @@ import '@/styles/globals.css';
 import { Livvic } from 'next/font/google';
 import { getLocale, getMessages, getTimeZone } from 'next-intl/server';
 
+// @next-maker:darkMode
 import { ThemeProvider } from '@teispace/next-themes';
+// @next-maker:darkMode
 import { getThemeScript } from '@teispace/next-themes/server';
 
 import { routing } from '@/i18n/routing';
@@ -18,7 +20,9 @@ import {
 } from '@/lib/config/seo';
 // Regression sentinel — see file comment for what this guards.
 import { HttpClientBundleSentinel } from '@/lib/http/__bundle-sentinel__/client-bundle-sentinel';
+// @next-maker:darkMode
 import { getNonce } from '@/lib/security/nonce';
+// @next-maker:darkMode
 import { themeProviderConfig, themeScriptConfig } from '@/lib/theme/config';
 import { RootProvider } from '@/providers';
 
@@ -68,26 +72,31 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+/* @next-maker:darkMode:start */
 // The anti-flash script is a pure function of the theme config, so it is
 // built once per process, not per request.
 const themeScript = getThemeScript(themeScriptConfig);
+/* @next-maker:darkMode:end */
 
 export default async function RootLayout({ children }: LayoutProps<'/[locale]'>) {
   // The request config validates the `[locale]` root param and 404s on an
   // unsupported value, so by the time this runs `locale` is trusted.
-  const [locale, messages, timeZone, nonce] = await Promise.all([
+  const [locale, messages, timeZone] = await Promise.all([
     getLocale(),
     getMessages(),
     getTimeZone(),
-    getNonce(),
   ]);
+  // @next-maker:darkMode
+  const nonce = await getNonce();
 
   return (
     <html lang={locale} dir={getLocaleDirection(locale)} suppressHydrationWarning={true}>
+      {/* @next-maker:darkMode:start */}
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: anti-flash theme script, built from trusted config */}
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
+      {/* @next-maker:darkMode:end */}
       <body className={`${livvic.variable} bg-light antialiased dark:bg-dark`}>
         <ThemeProvider {...themeProviderConfig} noScript={true} nonce={nonce}>
           <RootProvider locale={locale} messages={messages} timeZone={timeZone}>

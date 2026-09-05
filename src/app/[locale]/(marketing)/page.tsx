@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 
 import { accountKeys, SignInOptions } from '@/features/account';
 import { getSignInCapabilities, SessionStatus } from '@/features/account/server';
+// @next-maker:state
 import { Counter } from '@/features/counter';
 import { generateSEOMetadata } from '@/lib/config/seo';
 import { HydrateQueries, prefetchQuery } from '@/lib/query';
@@ -43,6 +44,7 @@ export default async function Home() {
       <JsonLd data={[websiteJsonLd(), organizationJsonLd()]} />
       <div className="flex flex-col items-center gap-6">
         <div className="font-bold text-2xl">{t('title')}</div>
+        {/* @next-maker:state */}
         <Counter />
         <Suspense fallback={null}>
           <SignInOptionsSection />

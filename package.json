@@ -47,7 +47,8 @@
     "validate": "pnpm ci:check && pnpm type-check && pnpm check:deprecated && pnpm test && pnpm build",
     "prepare": "husky",
     "commit": "cz",
-    "icons": "node scripts/generate-icons.ts"
+    "icons": "node scripts/generate-icons.ts",
+    "api:types": "node scripts/openapi-types.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
@@ -65,7 +66,8 @@
     "redux": "^5.0.1",
     "server-only": "^0.0.1",
     "socket.io-client": "^4.8.3",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

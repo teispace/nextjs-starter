@@ -10,6 +10,7 @@ test.describe('smoke', () => {
       /\/opengraph-image$/,
     );
 
+    /* @next-maker:state:start */
     await expect(page.getByText('Current Count: 0')).toBeVisible();
     await page.getByRole('button', { name: 'Increment' }).click();
     await expect(page.getByText('Current Count: 1')).toBeVisible();
@@ -17,6 +18,7 @@ test.describe('smoke', () => {
     // Persisted state survives a reload.
     await page.reload();
     await expect(page.getByText('Current Count: 1')).toBeVisible();
+    /* @next-maker:state:end */
   });
 
   test('security headers and a request id are present', async ({ request }) => {
