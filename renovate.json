@@ -1,0 +1,47 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":dependencyDashboard"],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "packageRules": [
+    {
+      "description": "Patch and minor updates are batched into one PR and auto-merged when CI is green.",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "minor and patch dependencies",
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Majors get their own PR and a human review; the group makes them visible instead of silently ignored.",
+      "matchUpdateTypes": ["major"],
+      "groupName": "major dependencies",
+      "automerge": false
+    },
+    {
+      "description": "Next, React, and the React compiler move together.",
+      "matchPackageNames": [
+        "next",
+        "@next/bundle-analyzer",
+        "@next/playwright",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom",
+        "babel-plugin-react-compiler"
+      ],
+      "groupName": "next and react"
+    },
+    {
+      "description": "GitHub Actions, pinned to digests.",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "automerge": true
+    }
+  ]
+}

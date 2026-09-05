@@ -4,15 +4,15 @@ echo '🚦 Running pre-push validation...'
 
 # 1. Biome lint + format check
 echo '🧹 Lint & format...'
-yarn ci:check
+pnpm ci:check
 if [ $? -ne 0 ]; then
-    echo '❌ Lint/format check failed. Run "yarn lint:fix" and try again.'
+    echo '❌ Lint/format check failed. Run "pnpm lint:fix" and try again.'
     exit 1
 fi
 
 # 2. TypeScript
 echo '🔎 Type checking...'
-yarn type-check
+pnpm type-check
 if [ $? -ne 0 ]; then
     echo '❌ Type check failed. Fix TypeScript errors before pushing.'
     exit 1
@@ -20,7 +20,7 @@ fi
 
 # 3. Deprecated API usage
 echo '🚫 Checking for deprecated APIs...'
-yarn check:deprecated
+pnpm check:deprecated
 if [ $? -ne 0 ]; then
     echo '❌ Deprecated API usage detected. Replace before pushing.'
     exit 1
@@ -28,7 +28,7 @@ fi
 
 # 4. Unit tests
 echo '🧪 Running tests...'
-yarn test
+pnpm test
 if [ $? -ne 0 ]; then
     echo '❌ Tests failed. Fix before pushing.'
     exit 1

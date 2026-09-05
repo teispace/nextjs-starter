@@ -1,0 +1,14 @@
+# Single-package project today; this file also carries pnpm settings.
+# Monorepo mode (next-maker `--monorepo`) adds `apps/*` and `packages/*` here.
+packages: []
+
+# Supply-chain gate: refuse any version published less than a day ago, so a
+# compromised release is usually yanked before it can reach an install.
+minimumReleaseAge: 1440
+
+# Install scripts are opt-in. Each of these ships prebuilt binaries and its
+# script is only a download fallback or a notice, so they stay off.
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  msw: false

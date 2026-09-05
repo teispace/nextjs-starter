@@ -2,24 +2,45 @@ import type { NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { routing } from './i18n/routing';
+import { isDevelopment } from './lib/config/constants';
+import { env } from './lib/env';
+import { buildCsp } from './lib/security/csp';
+import { NONCE_HEADER } from './lib/security/nonce';
 
 // Build the middleware once at module load (not per request) — the factory does
 // non-trivial locale-matcher/route-parsing setup. Matches next-intl's docs.
 const handleI18nRouting = createMiddleware(routing);
 
 export function proxy(request: NextRequest) {
-  return handleI18nRouting(request);
+  if (env.CSP_MODE !== 'nonce') return handleI18nRouting(request);
+
+  // Strict CSP: a fresh nonce per request, handed to Next through the request
+  // headers (it stamps its own scripts from the `Content-Security-Policy`
+  // request header) and to the layout through `x-nonce`. next-intl copies the
+  // request headers onto the response it builds, so mutating them here is
+  // enough for the rewrite/next response.
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const csp = buildCsp({
+    nonce,
+    connectOrigins: [env.NEXT_PUBLIC_API_URL ?? ''],
+    isDev: isDevelopment,
+  });
+  request.headers.set(NONCE_HEADER, nonce);
+  request.headers.set('Content-Security-Policy', csp);
+
+  const response = handleI18nRouting(request);
+  response.headers.set('Content-Security-Policy', csp);
+  return response;
 }
 
 export const config = {
   // Run on every path except: API/tRPC routes, Next.js internals, Vercel
-  // assets, /public files (favicon, robots, sitemap, og-image, manifest, etc.),
+  // assets, /public files (favicon, robots, sitemap, manifest, etc.),
   // and any path with a static-asset extension.
   matcher: [
-    // Metadata image routes generated from `opengraph-image.tsx` and friends
-    // are served without an extension (`/opengraph-image`), so the exclusion
-    // must not require one — otherwise next-intl rewrites them under the
-    // locale and they 404.
-    '/((?!api|trpc|_next/static|_next/image|_vercel|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|opengraph-image(?:\\.[^/]+)?$|twitter-image(?:\\.[^/]+)?$|apple-icon(?:\\.[^/]+)?$|icon(?:\\.[^/]+)?$|.*\\.(?:js|css|map|json|svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|eot|mp4|webm)).*)',
+    // Extensionless metadata routes (`/opengraph-image`, `/icon`) deliberately
+    // pass through: they live under `[locale]` and rely on the same locale
+    // rewrite as pages. Only their static-file forms are excluded.
+    '/((?!api|trpc|_next/static|_next/image|_vercel|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|opengraph-image\\.[^/]+|twitter-image\\.[^/]+|apple-icon\\.[^/]+|icon\\.[^/]+|.*\\.(?:js|css|map|json|svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|eot|mp4|webm)).*)',
   ],
 };

@@ -8,7 +8,9 @@
  * Exits 1 if any deprecated usage is found (so it can gate CI).
  */
 
-import ts from 'typescript';
+// TypeScript 7 ships no JavaScript compiler API; Microsoft publishes the 6.x
+// API as `@typescript/typescript6` for tools like this one. `tsc` itself is 7.
+import ts from '@typescript/typescript6';
 
 import path from 'node:path';
 

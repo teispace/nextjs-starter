@@ -2,7 +2,6 @@
 
 import { type AbstractIntlMessages, NextIntlClientProvider } from 'next-intl';
 
-import { CustomThemeProvider } from '@/providers';
 import type { AppState } from '@/store';
 import type { SupportedLocale } from '@/types/i18n';
 
@@ -16,6 +15,11 @@ type RootProviderProps = {
   preloadedState?: Partial<AppState>;
 };
 
+/**
+ * Client-side providers. The theme provider is not here on purpose: it is
+ * rendered from the server layout, next to the anti-flash script in `<head>`,
+ * so the two stay in the same file and the same config.
+ */
 export const RootProvider = ({
   children,
   locale,
@@ -25,11 +29,9 @@ export const RootProvider = ({
 }: RootProviderProps) => {
   return (
     <StoreProvider preloadedState={preloadedState}>
-      <CustomThemeProvider>
-        <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
-          {children}
-        </NextIntlClientProvider>
-      </CustomThemeProvider>
+      <NextIntlClientProvider locale={locale} messages={messages} timeZone={timeZone}>
+        {children}
+      </NextIntlClientProvider>
     </StoreProvider>
   );
 };

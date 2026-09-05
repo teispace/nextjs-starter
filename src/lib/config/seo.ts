@@ -7,7 +7,7 @@ import type { SupportedLocale } from '@/types/i18n';
 
 const APP_URL = env.NEXT_PUBLIC_APP_URL;
 const APP_NAME = 'Nextjs Starter';
-/** Route served by `src/app/opengraph-image.tsx`; relative so `metadataBase` resolves it. */
+/** Served by `src/app/[locale]/opengraph-image.tsx` via the locale rewrite; relative so `metadataBase` resolves it. */
 const DEFAULT_OG_IMAGE_PATH = '/opengraph-image';
 
 type SEOParams = {
@@ -55,9 +55,10 @@ export function generateSEOMetadata({
 }: SEOParams): Metadata {
   const url = localizedUrl(path, locale);
   const languages = buildLanguageAlternates(path);
-  // The default card is rendered by `src/app/opengraph-image.tsx`. It is
-  // referenced explicitly (resolved against `metadataBase`) so every page,
-  // including ones with their own `generateMetadata`, gets the same default.
+  // The default card is referenced explicitly rather than left to the file
+  // convention: with `localePrefix: 'never'` the convention would emit the
+  // prefixed `/en/opengraph-image`, which the proxy redirects. The unprefixed
+  // path is rewritten to the active locale's image instead.
   const ogImage = image ?? DEFAULT_OG_IMAGE_PATH;
   const images = [{ url: ogImage, width: 1200, height: 630, alt: title }];
 

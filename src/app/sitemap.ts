@@ -24,7 +24,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     const languages = buildAlternates(path);
     return {
       url: localizedUrl(path, routing.defaultLocale),
-      lastModified: new Date(),
+      // No `lastModified`: `new Date()` is request-time work and would make
+      // the sitemap render dynamically under Cache Components. Set it from
+      // real content timestamps when pages come from a CMS or database.
       changeFrequency: 'monthly' as const,
       priority: path === '/' ? 1 : 0.8,
       alternates: languages ? { languages } : undefined,

@@ -1,14 +1,4 @@
-import type { Metadata } from 'next';
 import Link from 'next/link';
-
-import { APP_URL } from '@/lib/config/seo';
-
-// This route renders outside the [locale] layout, so it must carry its own
-// metadataBase or Next warns while resolving the root opengraph-image URL.
-export const metadata: Metadata = {
-  metadataBase: new URL(APP_URL),
-  title: 'Page not found',
-};
 
 // Provider-free global 404 fallback for paths outside [locale]: it renders its
 // own <html>/<body> with inline styles and uses next/link (not @/i18n/navigation)

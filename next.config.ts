@@ -3,49 +3,39 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
-import { isProduction } from './src/lib/config/constants';
+import { isDevelopment, isProduction } from './src/lib/config/constants';
+import { env } from './src/lib/env';
+import { securityHeaders } from './src/lib/security/headers';
 
 const nextConfig: NextConfig = {
   output: isProduction ? 'standalone' : undefined,
   reactCompiler: true,
+  // Partial prerendering with explicit caching: static shells stream
+  // instantly, dynamic parts stream in. `use cache` / `cacheTag` are the only
+  // cache vocabulary; nothing is cached by accident.
+  cacheComponents: true,
+  partialPrefetching: true,
+  typedRoutes: true,
   poweredByHeader: false,
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [],
   },
-  headers: async () => {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
-          },
-        ],
-      },
-    ];
+  experimental: {
+    // Lets the Data Access Layer mark objects that must never reach the client.
+    taint: true,
   },
+  headers: async () => [
+    {
+      source: '/:path*',
+      headers: securityHeaders({
+        // In nonce mode the proxy owns the CSP so it can vary per request.
+        csp: env.CSP_MODE === 'static',
+        connectOrigins: [env.NEXT_PUBLIC_API_URL ?? ''],
+        isDev: isDevelopment,
+      }),
+    },
+  ],
 };
 
 const withNextIntl = createNextIntlPlugin();

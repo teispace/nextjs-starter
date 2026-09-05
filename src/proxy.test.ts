@@ -38,14 +38,13 @@ describe('proxy matcher', () => {
     expect(matches('/fonts/livvic.woff2')).toBe(false);
   });
 
-  it('skips metadata routes whether or not they carry an extension', () => {
-    // File-convention routes like `opengraph-image.tsx` are served at an
-    // extensionless URL; rewriting them under the locale would 404.
-    expect(matches('/opengraph-image')).toBe(false);
+  it('skips static metadata files but routes extensionless metadata through the locale rewrite', () => {
+    // `[locale]/opengraph-image.tsx` is served at `/opengraph-image` only
+    // because the proxy rewrites it under the active locale, exactly like a page.
+    expect(matches('/opengraph-image')).toBe(true);
+    expect(matches('/icon')).toBe(true);
     expect(matches('/opengraph-image.png')).toBe(false);
-    expect(matches('/twitter-image')).toBe(false);
-    expect(matches('/apple-icon')).toBe(false);
-    expect(matches('/icon')).toBe(false);
+    expect(matches('/apple-icon.png')).toBe(false);
     expect(matches('/robots.txt')).toBe(false);
     expect(matches('/sitemap.xml')).toBe(false);
     expect(matches('/manifest.webmanifest')).toBe(false);
