@@ -27,9 +27,6 @@ type RootProviderProps = {
  * Client-side providers. The theme provider is not here on purpose: it is
  * rendered from the server layout, next to the anti-flash script in `<head>`,
  * so the two stay in the same file and the same config.
- *
- * The `@next-maker` comments are composition anchors read by the project
- * generator; they are inert here and removed from generated projects.
  */
 export const RootProvider = ({
   children,

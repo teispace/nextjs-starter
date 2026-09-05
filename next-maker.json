@@ -113,7 +113,9 @@
       "LICENSE",
       "docs/structure.md",
       "docs/migrating-from-1.x.md",
+      "docs/composition.md",
       "docs/adr/**",
+      "test/next-maker-manifest.test.ts",
       "next-maker.json",
       ".next-maker/**"
     ]
