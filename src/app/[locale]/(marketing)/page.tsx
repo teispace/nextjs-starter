@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
 
+import { SectionErrorBoundary } from '@/components';
 import { accountKeys, SignInOptions } from '@/features/account';
 import { getSignInCapabilities, SessionStatus } from '@/features/account/server';
 // @next-maker:state
@@ -37,7 +38,8 @@ async function SignInOptionsSection() {
 }
 
 export default async function Home() {
-  const t = await getTranslations('App');
+  const [t, tError] = await Promise.all([getTranslations('App'), getTranslations('Error')]);
+  const boundary = { title: tError('title'), retryLabel: tError('retry') };
 
   return (
     <div className="flex min-h-dvh w-full items-center justify-center">
@@ -46,12 +48,18 @@ export default async function Home() {
         <div className="font-bold text-2xl">{t('title')}</div>
         {/* @next-maker:state */}
         <Counter />
-        <Suspense fallback={null}>
-          <SignInOptionsSection />
-        </Suspense>
-        <Suspense fallback={null}>
-          <SessionStatus />
-        </Suspense>
+        {/* Each section fails on its own: a broken query or session lookup
+            shows a retry control here instead of unmounting the page. */}
+        <SectionErrorBoundary {...boundary}>
+          <Suspense fallback={null}>
+            <SignInOptionsSection />
+          </Suspense>
+        </SectionErrorBoundary>
+        <SectionErrorBoundary {...boundary}>
+          <Suspense fallback={null}>
+            <SessionStatus />
+          </Suspense>
+        </SectionErrorBoundary>
       </div>
     </div>
   );

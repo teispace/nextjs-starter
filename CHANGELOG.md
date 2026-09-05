@@ -35,6 +35,8 @@ v2 is a greenfield rebuild on a new branch; proven modules were ported, everythi
 - **State option**: `zustand` ships as a first-class alternative to Redux (store, persist middleware with versioned migrations, `StoreProvider`, hooks, counter example, tests) selected at project creation.
 - `pnpm api:types` generates `src/types/api.generated.d.ts` from an OpenAPI document.
 - CI builds the standalone artifact with `BUILD_STANDALONE=true` explicitly.
+- **Same-origin API proxy (BFF)**: `src/app/api/backend/[...path]/route.ts` forwards browser calls to the API with sanitised cookies and the request id, streaming bodies both ways and relaying `Set-Cookie`. Selected with the `bff` option; the universal client then targets `/api/backend` in the browser.
+- **Section error boundaries**: `SectionErrorBoundary` (`@/components`) wraps `catchError` from `next/error` so a failing section shows a retry control instead of the route's `error.tsx`. Used around the home page sections.
 - **Docs**: rewritten for v2: `README.md`, `AGENTS.md`, `docs/structure.md`, `docs/data-layer.md`, `docs/ui-libraries.md`, `docs/migrating-from-1.x.md`, `docs/adr/`, and the HTTP, WebSocket, i18n, and feature guides.
 - **Observability**: `src/instrumentation.ts` logs every uncaught server error with its digest, route, and request id through pino (`onRequestError`), never the headers. The proxy stamps `X-Request-Id` on every request and response (a well-formed incoming id is kept), so the render, the server HTTP client, and the API share one id; `getRequestLogger()` (`@/lib/logger/request`) returns a child logger bound to it.
 

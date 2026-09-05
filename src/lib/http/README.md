@@ -124,6 +124,10 @@ await serverHttp.post(AppApis.auth.logout, undefined, {
 });
 ```
 
+## Same-origin proxy (BFF)
+
+With the `bff` option on, `src/app/api/backend/[...path]/route.ts` forwards every browser call to the API: `/api/backend/orders/42?expand=items` becomes `GET <API_INTERNAL_URL>/api/v1/orders/42?expand=items` with the sanitised session cookies and the request id. Status, body (streamed), `content-type`, `etag`, `location`, and every `set-cookie` are relayed; hop-by-hop and cache headers are not, and nothing is cached. The universal client's base URL becomes `/api/backend` in the browser, so the API origin never reaches the client bundle, cookies stay first-party, and CORS is unnecessary. Server clients still reach the API directly.
+
 ## Request correlation
 
 Every request carries `X-Request-Id`. The proxy stamps one on every incoming request (keeping a well-formed one from an upstream gateway) and echoes it on the response; `serverHttp` forwards it; the browser client mints one per call. `HttpError.requestId` holds the value the API echoed.

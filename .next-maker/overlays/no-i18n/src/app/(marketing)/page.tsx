@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 
 import type { Metadata } from 'next';
 
+import { SectionErrorBoundary } from '@/components';
 import { accountKeys, SignInOptions } from '@/features/account';
 import { getSignInCapabilities, SessionStatus } from '@/features/account/server';
 // @next-maker:state
@@ -39,12 +40,16 @@ export default function Home() {
         <div className="font-bold text-2xl">{APP_NAME}</div>
         {/* @next-maker:state */}
         <Counter />
-        <Suspense fallback={null}>
-          <SignInOptionsSection />
-        </Suspense>
-        <Suspense fallback={null}>
-          <SessionStatus />
-        </Suspense>
+        <SectionErrorBoundary title="Something went wrong" retryLabel="Try again">
+          <Suspense fallback={null}>
+            <SignInOptionsSection />
+          </Suspense>
+        </SectionErrorBoundary>
+        <SectionErrorBoundary title="Something went wrong" retryLabel="Try again">
+          <Suspense fallback={null}>
+            <SessionStatus />
+          </Suspense>
+        </SectionErrorBoundary>
       </div>
     </div>
   );

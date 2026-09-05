@@ -24,6 +24,11 @@
       "values": ["fetch", "axios", "both"],
       "default": "fetch"
     },
+    "bff": {
+      "type": "boolean",
+      "label": "Same-origin API proxy (BFF) for browser calls",
+      "default": false
+    },
     "ws": {
       "type": "boolean",
       "label": "WebSocket client (Socket.IO)",
@@ -256,6 +261,18 @@
       },
       "on": {
         "overlay": "http-axios"
+      }
+    },
+    "bff": {
+      "description": "Backend-for-frontend proxy route and same-origin browser base URL",
+      "when": {
+        "bff": [true]
+      },
+      "on": {
+        "overlay": "bff"
+      },
+      "off": {
+        "remove": ["src/app/api/backend/**"]
       }
     },
     "tests": {

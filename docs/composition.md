@@ -54,6 +54,7 @@ Current overlays:
 | `no-i18n`    | `i18n: false`           | root `app/` shell and pages, proxy, SEO config, English components       |
 | `zustand`    | `state: zustand`        | store, hooks, `StoreProvider`, counter store and hook, test utils        |
 | `http-axios` | `http: axios`           | universal client on the Axios adapter                                    |
+| `bff`        | `bff: true`             | browser base URL pointing at the `/api/backend` proxy route              |
 | `pm-npm`, `pm-yarn`, `pm-bun` | package manager | Dockerfile and CI workflow (plus `.yarnrc.yml` for Yarn)      |
 
 ## Adding an optional feature
