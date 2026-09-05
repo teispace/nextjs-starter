@@ -105,8 +105,8 @@ jobs:
           key: nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-${{ github.sha }}
           restore-keys: |
             nextjs-${{ runner.os }}-${{ hashFiles('yarn.lock') }}-
-      - run: yarn playwright install --with-deps chromium
-      - run: yarn test:e2e --project=chromium
+      - run: yarn playwright install --with-deps chromium webkit
+      - run: yarn test:e2e --project=chromium --project=webkit
         env:
           CI: true
       - uses: actions/upload-artifact@v7

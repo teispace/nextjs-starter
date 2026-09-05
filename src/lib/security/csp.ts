@@ -20,6 +20,8 @@ export interface CspOptions {
   /** Origins the browser may fetch or open sockets to, besides self. */
   connectOrigins?: readonly string[];
   isDev?: boolean;
+  /** The app is served over https; adds `upgrade-insecure-requests`. */
+  https?: boolean;
 }
 
 const origins = (list: readonly string[] | undefined): string[] =>
@@ -36,7 +38,12 @@ export const toWebSocketOrigin = (origin: string): string | null => {
   }
 };
 
-export const buildCsp = ({ nonce, connectOrigins, isDev = false }: CspOptions = {}): string => {
+export const buildCsp = ({
+  nonce,
+  connectOrigins,
+  isDev = false,
+  https = false,
+}: CspOptions = {}): string => {
   const connect = origins(connectOrigins).flatMap((origin) => {
     const ws = toWebSocketOrigin(origin);
     return ws ? [origin, ws] : [origin];
@@ -63,6 +70,6 @@ export const buildCsp = ({ nonce, connectOrigins, isDev = false }: CspOptions = 
     "worker-src 'self' blob:",
     "manifest-src 'self'",
   ];
-  if (!isDev) directives.push('upgrade-insecure-requests');
+  if (https) directives.push('upgrade-insecure-requests');
   return directives.join('; ');
 };

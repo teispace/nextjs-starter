@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { routing } from './i18n/routing';
-import { isDevelopment } from './lib/config/constants';
+import { isDevelopment, servesHttps } from './lib/config/constants';
 import { env } from './lib/env';
 import {
   generateRequestId,
@@ -40,6 +40,7 @@ export function proxy(request: NextRequest) {
     nonce,
     connectOrigins: [env.NEXT_PUBLIC_API_URL ?? ''],
     isDev: isDevelopment,
+    https: servesHttps,
   });
   request.headers.set(NONCE_HEADER, nonce);
   request.headers.set('Content-Security-Policy', csp);

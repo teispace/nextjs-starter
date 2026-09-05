@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { isDevelopment } from './lib/config/constants';
+import { isDevelopment, servesHttps } from './lib/config/constants';
 import { env } from './lib/env';
 import {
   generateRequestId,
@@ -33,6 +33,7 @@ export function proxy(request: NextRequest) {
     nonce,
     connectOrigins: [env.NEXT_PUBLIC_API_URL ?? ''],
     isDev: isDevelopment,
+    https: servesHttps,
   });
   requestHeaders.set(NONCE_HEADER, nonce);
   requestHeaders.set('Content-Security-Policy', csp);
