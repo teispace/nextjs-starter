@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0-alpha.0] — in progress
+## [2.0.0-alpha.1] — 2026-09-05
+
+### Fixed
+
+- **Security headers over http**: `Strict-Transport-Security` and the CSP `upgrade-insecure-requests` directive are sent only when `NEXT_PUBLIC_APP_URL` is https. A production build served over plain http (a local `pnpm start`, an internal preview) previously made WebKit upgrade every asset request to https, so pages never hydrated. `securityHeaders` and `buildCsp` take an explicit `https` flag; `servesHttps` in `src/lib/config/constants.ts` derives it.
+- **CI** runs the Playwright suite on WebKit as well as Chromium; the smoke test asserts the https-only headers stay off over http.
+
+## [2.0.0-alpha.0] — 2026-09-05
 
 v2 is a greenfield rebuild on a new branch; proven modules were ported, everything else was rewritten. Consumers upgrade through next-maker 5, not by hand.
 

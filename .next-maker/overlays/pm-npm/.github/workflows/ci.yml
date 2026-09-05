@@ -101,8 +101,8 @@ jobs:
           key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
           restore-keys: |
             nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
-      - run: npx --no -- playwright install --with-deps chromium
-      - run: npm run test:e2e -- --project=chromium
+      - run: npx --no -- playwright install --with-deps chromium webkit
+      - run: npm run test:e2e -- --project=chromium --project=webkit
         env:
           CI: true
       - uses: actions/upload-artifact@v7

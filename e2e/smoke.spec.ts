@@ -27,6 +27,10 @@ test.describe('smoke', () => {
     expect(res.headers()['x-frame-options']).toBe('SAMEORIGIN');
     expect(res.headers()['x-powered-by']).toBeUndefined();
     expect(res.headers()['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+    // Served over http here: https-only directives must stay off or WebKit
+    // upgrades every asset request and the page never hydrates.
+    expect(res.headers()['strict-transport-security']).toBeUndefined();
+    expect(res.headers()['content-security-policy']).not.toContain('upgrade-insecure-requests');
   });
 
   test('manifest, icons, and structured data are served', async ({ page, request }) => {

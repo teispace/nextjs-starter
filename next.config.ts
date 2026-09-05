@@ -5,7 +5,7 @@ import createNextIntlPlugin from 'next-intl/plugin';
 // @next-maker:analyzer
 import withBundleAnalyzer from '@next/bundle-analyzer';
 
-import { isDevelopment } from './src/lib/config/constants';
+import { isDevelopment, servesHttps } from './src/lib/config/constants';
 import { env } from './src/lib/env';
 import { securityHeaders } from './src/lib/security/headers';
 
@@ -36,6 +36,7 @@ const nextConfig: NextConfig = {
         csp: env.CSP_MODE === 'static',
         connectOrigins: [env.NEXT_PUBLIC_API_URL ?? ''],
         isDev: isDevelopment,
+        https: servesHttps,
       }),
     },
   ],

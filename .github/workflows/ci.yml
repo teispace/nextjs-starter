@@ -105,8 +105,8 @@ jobs:
           key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
             nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e --project=chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e --project=chromium --project=webkit
         env:
           CI: true
       - uses: actions/upload-artifact@v7

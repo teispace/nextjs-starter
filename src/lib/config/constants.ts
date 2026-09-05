@@ -30,3 +30,11 @@ export const DEFAULT_TIMEOUT_MS = 10_000;
 export const isProduction = env.NODE_ENV === Environment.PRODUCTION;
 export const isDevelopment = env.NODE_ENV === Environment.DEVELOPMENT;
 export const isTest = env.NODE_ENV === Environment.TEST;
+
+/**
+ * Whether the public app URL is https. HSTS and `upgrade-insecure-requests`
+ * only make sense on that origin: over plain http (a local production
+ * build, an internal preview) browsers such as WebKit would otherwise
+ * upgrade every asset request to https and the page would never hydrate.
+ */
+export const servesHttps = env.NEXT_PUBLIC_APP_URL.startsWith('https:');

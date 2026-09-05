@@ -74,7 +74,7 @@ Values are validated at module load by `src/lib/env/index.ts`; a misconfiguratio
 | Variable              | Group  | Description                                                                                | Default (dev)           |
 | :-------------------- | :----- | :----------------------------------------------------------------------------------------- | :---------------------- |
 | `NEXT_PUBLIC_API_URL` | client | Bare origin of the API. The `/api/v1` prefix is added internally. Empty means same-origin. | `(empty)`               |
-| `NEXT_PUBLIC_APP_URL` | client | Public URL of this app (canonical and Open Graph URLs). Required in production builds.     | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | client | Public URL of this app (canonical and Open Graph URLs; HSTS only when https). Required in production builds. | `http://localhost:3000` |
 | `API_INTERNAL_URL`    | server | Origin the server uses to reach the API (private network). Falls back to the public URL.   | `(empty)`               |
 | `BUILD_STANDALONE`    | server | Emit `.next/standalone` (set by the Dockerfile).                                           | `false`                 |
 | `CSP_MODE`            | server | `static`, `nonce`, or `off`.                                                               | `static`                |
