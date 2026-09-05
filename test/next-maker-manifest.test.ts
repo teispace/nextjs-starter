@@ -81,6 +81,13 @@ const anchorCarriers = (): string[] =>
   );
 
 describe('next-maker.json', () => {
+  it('carries the package version', async () => {
+    const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    expect(manifest.starter.version).toBe(pkg.version);
+  });
+
   it('matches literal App Router paths and dot-directories', () => {
     expect(patternToRegExp('src/app/[locale]/**').test('src/app/[locale]/(app)/page.tsx')).toBe(
       true,
