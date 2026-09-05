@@ -16,7 +16,7 @@ Server-first App Router template. Next 16.3 (Cache Components), React 19, TypeSc
 - **Data access**: Server Components read through the feature DAL (`features/<f>/api/server.ts`, `import 'server-only'`). User data uses `serverHttp`; public cached data uses `publicServerHttp`. Never `use cache` a function that reads cookies. See `docs/data-layer.md`.
 - **Mutations**: Server Actions in `features/<f>/api/actions.ts` built with `actionClient` / `authActionClient` from `@/lib/actions` (zod `.inputSchema()`, `.metadata({ name })`). Errors return as `result.serverError` (`ActionError`); do not throw raw errors to the client. Cookie changes from the API are relayed with `relaySetCookies`.
 - **Client reads**: TanStack Query. `queryOptions` in `features/<f>/api/queries.ts`, keys in `api/keys.ts`, server prefetch with `prefetchQuery` + `HydrateQueries` from `@/lib/query`. `queryFn` uses `http` and `unwrapForQuery`.
-- **HTTP**: one `HttpClient` (`@/lib/http`) with adapters; `fetch` is default, `axiosAdapter` is opt-in. Universal `http`; server entries in `@/lib/http/server` (`serverHttp`, `publicServerHttp`). Calls return `Result<T, HttpError>`; nothing throws. Endpoint paths in `src/lib/config/app-apis.ts`. See `src/lib/http/README.md`.
+- **HTTP**: one `HttpClient` (`@/lib/http`) with adapters; `fetch` is default, `axiosAdapter` is opt-in. Universal `http`; server entries in `@/lib/http/server` (`serverHttp`, `publicServerHttp`). Calls return `Result<T, HttpError>`; nothing throws. Endpoint paths in `src/lib/config/app-apis.ts`. With the `bff` option, browser calls go through `src/app/api/backend/[...path]/route.ts`; keep it a pass-through (no business logic). See `src/lib/http/README.md`.
 - **Auth**: HttpOnly cookies only. `getCurrentUser` / `requireUser` from `@/lib/auth` on the server; the browser client refreshes once via `POST /api/auth/refresh`; the server never refreshes. No bearer tokens, no web storage tokens. Check sessions in pages and actions, never only in layouts.
 - **Env vars**: import `env` from `@/lib/env` (`@teispace/env`, server / client / shared groups). Add new vars in `src/lib/env/index.ts` (client vars must be `NEXT_PUBLIC_` and listed in `runtimeEnv`) and in `.env.example`. Reading a server var from a `'use client'` module throws by design.
 - **Logging**: `logger` from `@/lib/logger` (pino), `getRequestLogger()` from `@/lib/logger/request` when a request id should be attached (server, dynamic). Never `console.*`. Keep log surfaces shallow; redaction covers root keys, one level, and header locations.
@@ -27,6 +27,8 @@ Server-first App Router template. Next 16.3 (Cache Components), React 19, TypeSc
 - **Theme**: `@teispace/next-themes` rendered from `src/app/[locale]/layout.tsx` with `getThemeScript` in `<head>`; config in `src/lib/theme/config.ts`. Read theme state through CSS (`dark:`), not React.
 - **Security**: headers and CSP from `src/lib/security`; `CSP_MODE` selects `static` (default) / `nonce` / `off`. Inline scripts need `nonce={await getNonce()}`.
 - **SEO**: `generateSEOMetadata` from `@/lib/config/seo` in every page's `generateMetadata`; JSON-LD via `@/lib/seo`. Default Open Graph card at `src/app/[locale]/opengraph-image.tsx`, referenced as `/opengraph-image`.
+- **Errors**: `error.tsx` per route segment for whole-route failures; `SectionErrorBoundary` from `@/components` (built on `catchError` from `next/error`) around sections that should fail independently. Never render `error.message` in production UI.
+- **Composition**: optional features are declared in `next-maker.json`; shared files carry `@next-maker:<id>` anchor comments and variant files live under `.next-maker/overlays/`. When you add or move an optional feature, update the manifest, anchors, or overlay in the same change (`test/next-maker-manifest.test.ts` enforces it). See `docs/composition.md`.
 - **Tests**: Vitest 5 with `node` (`*.test.ts`) and `jsdom` (`*.test.tsx`, or `// @vitest-environment jsdom`) projects, MSW for HTTP, `renderWithProviders` from `test/test-utils.tsx`. Playwright in `e2e/` runs against a production build. Co-locate unit tests next to the source.
 - **Import alias**: `@/*` → `src/*`.
 
@@ -35,7 +37,7 @@ Server-first App Router template. Next 16.3 (Cache Components), React 19, TypeSc
 ```
 src/
   app/                    App Router. [locale]/(marketing), [locale]/(app)/dashboard, [locale]/auth/login,
-                          api/auth/refresh, manifest.ts, sitemap.ts, robots.ts, icons, global-error.tsx
+                          api/auth/refresh, api/backend/[...path] (bff), manifest.ts, sitemap.ts, robots.ts, icons
   features/<name>/        api/{schema,keys,server,actions,queries}.ts, components/, store/, index.ts, server.ts
   components/             Shared, cross-feature components
   i18n/                   routing, request, formats, navigation, translations/

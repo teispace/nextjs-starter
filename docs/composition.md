@@ -16,7 +16,7 @@
 - **always.remove**: starter-only files that never ship.
 - **packageManagers**: per-manager `packageManager` field, lockfile, overlay, and files to drop.
 
-Order of operations in the CLI: removals, then overlays, then anchors and unwraps, then `package.json` and env edits, then package-manager adaptation, then a formatting pass.
+Order of operations in the CLI: package-manager overlay, removals, feature overlays, anchors and unwraps, `package.json` and env edits, package-manager command rewrites, then a formatting pass. Files an overlay adds are subject to the removals of every other feature (an overlay's tests still leave when tests are off), except removals owned by a sibling of the overlay's own option: the `zustand` overlay replaces what the `redux` removal deleted and must survive it.
 
 ## Anchors
 

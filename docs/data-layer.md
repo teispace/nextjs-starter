@@ -108,9 +108,13 @@ export const signOut = authActionClient
 | `getCurrentUser()`           | Server Components, actions       | One upstream call per request (React `cache`). `null` when signed out or when the API is down.     |
 | `requireUser(returnTo?)`     | Server Components under Suspense | Redirects to `/auth/login?redirectTo=...` when signed out.                                         |
 | `authActionClient`           | Actions                          | Injects `ctx.user`; refuses anonymous callers.                                                     |
-| `http` (browser)             | Client Components                | Refreshes once on 401 via `POST /api/auth/refresh`, replays, then redirects to sign-in if it fails. |
+| `http` (browser)             | Client Components                | Refreshes once on 401 via `POST /api/auth/refresh`, replays, then redirects to sign-in if it fails. With the `bff` option it calls `/api/backend/...` on this origin, which forwards to the API with the session cookies. |
 
 Check the session in the **page** (or the component that renders user data), not in a layout: layouts do not re-run on client navigation. The `/dashboard` page shows the pattern.
+
+## Failure boundaries
+
+`error.tsx` catches a whole route segment. For a section that should fail on its own (a widget backed by one query, a session lookup), wrap it in `SectionErrorBoundary` from `@/components`: it is built on `catchError` from `next/error`, so `retry()` re-renders only that subtree, `redirect()` and `notFound()` pass through, and the raw error message is never shown. The home page wraps its sign-in options and session status this way.
 
 ## Caching summary
 

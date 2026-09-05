@@ -10,8 +10,10 @@ nextjs-starter/
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── .husky/                             commit-msg (commitlint), pre-commit, pre-push
 ├── .vscode/                            Biome as formatter, debug configs, tasks
+├── .next-maker/overlays/               variant trees applied by next-maker (no-i18n, zustand, http-axios, bff, pm-npm|yarn|bun)
 ├── docs/
 │   ├── adr/                            architecture decision records
+│   ├── composition.md                  how next-maker.json, anchors, and overlays compose a project
 │   ├── data-layer.md                   DAL, actions, queries, caching, session
 │   ├── migrating-from-1.x.md
 │   ├── structure.md                    this file
@@ -34,13 +36,14 @@ nextjs-starter/
 │   │   │   ├── not-found.tsx
 │   │   │   └── opengraph-image.tsx             default Open Graph card per locale
 │   │   ├── api/auth/refresh/route.ts           same-origin session refresh (relays Set-Cookie)
+│   │   ├── api/backend/[...path]/route.ts      same-origin API proxy (BFF), kept when the `bff` option is on
 │   │   ├── apple-icon.png, icon.png, favicon.ico
 │   │   ├── global-error.tsx
 │   │   ├── manifest.ts
 │   │   ├── not-found.tsx
 │   │   ├── robots.ts
 │   │   └── sitemap.ts
-│   ├── components/common/              shared, cross-feature components
+│   ├── components/common/              shared, cross-feature components (SectionErrorBoundary on `catchError`)
 │   ├── features/
 │   │   ├── README.md                   feature layout and rules
 │   │   ├── account/                    reference feature
@@ -104,6 +107,7 @@ nextjs-starter/
 │   ├── setup.node.ts                   stubs server-only
 │   ├── setup.dom.ts                    node setup + jest-dom + cleanup
 │   └── test-utils.tsx                  renderWithProviders, TestProviders, makeTestQueryClient
+├── next-maker.json                     composition manifest read by @teispace/next-maker
 ├── .env.example
 ├── AGENTS.md / CLAUDE.md               coding-agent rules
 ├── biome.json
