@@ -108,10 +108,10 @@ Please fill out this template to help us review your PR.
 
 ### Build & CI
 
-- [ ] `yarn lint` passes
-- [ ] `yarn format:check` passes
-- [ ] `yarn type-check` passes
-- [ ] `yarn build` succeeds
+- [ ] `pnpm lint` passes
+- [ ] `pnpm format:check` passes
+- [ ] `pnpm type-check` passes
+- [ ] `pnpm build` succeeds
 - [ ] All CI checks will pass
 
 ### Commits & Documentation

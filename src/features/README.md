@@ -1,112 +1,48 @@
-# Feature-Based Architecture
+# Features
 
-This project follows a **Domain-Driven Design (DDD)** inspired feature-based architecture. Group code by feature, not by technical type — so everything an "auth" or "users" feature needs lives together and ships together.
-
-## 📂 Structure
-
-Each feature is a self-contained module under `src/features/`. The shipped reference is `src/features/counter/` — copy its layout when you add a new feature.
+Code is grouped by feature, not by technical type. Everything the `account` feature needs lives in `src/features/account/` and ships together. Copy its layout for new features.
 
 ```
-src/features/
-└── counter/                  # Feature name (kebab-case folder)
-    ├── components/           # UI components specific to this feature
-    │   ├── Counter.tsx
-    │   └── Counter.test.tsx  # Co-located test
-    ├── hooks/                # React hooks specific to this feature
-    │   └── useCounter.ts
-    ├── store/                # Redux slice/selectors/persist (optional)
-    │   ├── counter.slice.ts
-    │   ├── counter.selectors.ts
-    │   ├── persist.ts        # Per-feature redux-persist config
-    │   └── index.ts          # Barrel re-export for `@/store/rootReducer`
-    ├── types/                # Feature-local TypeScript types
-    │   └── counter.types.ts
-    └── index.ts              # Public API — only what's safe to import from outside
+src/features/<name>/
+├── api/
+│   ├── schema.ts       zod contracts; types are inferred from them
+│   ├── keys.ts         TanStack Query keys (feature-owned)
+│   ├── server.ts       DAL: Server Component reads ('server-only', `use cache` for public data)
+│   ├── actions.ts      Server Actions ('use server', built with authActionClient)
+│   └── queries.ts      queryOptions + hooks for client reads
+├── components/         server and client components (+ *.test.tsx)
+├── hooks/              feature hooks (optional)
+├── store/              Redux slice, selectors, persistence entry (optional)
+├── types/              types that are not inferred from a schema (optional)
+├── index.ts            client-safe public API
+└── server.ts           server-only public API ('server-only')
 ```
 
-Optional subfolders you can add when the feature needs them: `services/` (API/SDK wrappers), `providers/` (feature-scoped React providers), `hoc/`. **Skip the folder if it has no files** — empty placeholders rot fast.
+Skip folders that have no files.
 
-## 🚀 Creating a New Feature
+## The two barrels
 
-1.  **Create the folder** under `src/features/` (e.g., `products`).
-2.  **Components** go in `src/features/products/components/`. Co-locate tests as `*.test.tsx`.
-3.  **Hooks** go in `src/features/products/hooks/`.
-4.  **Types** go in `src/features/products/types/<name>.types.ts`.
-5.  **Redux** (if the feature owns state) goes in `src/features/products/store/`. Wire the reducer into `src/store/rootReducer.ts`. Persist via the feature's own `persist.ts` so persistence config travels with the feature.
-6.  **Public API** — re-export from `src/features/products/index.ts`. Only export what other features / the `app/` layer needs.
+- `index.ts` exports what a `'use client'` module may import: components, hooks, queries, keys, schema types, and Server Action references. It must not re-export anything that imports `server-only`.
+- `server.ts` exports the DAL and server components. Server Components import from here.
 
-    ```ts
-    // src/features/products/index.ts
-    export * from './components/product-list';
-    export * from './hooks/use-products';
-    export * from './types/products.types';
-    ```
+Importing `@/features/<name>/api/server` directly from a client file fails the build; that is the guard working.
 
-## 🤝 Rules of Engagement
+## Adding a feature
 
-1.  **Encapsulation**:
-    Features should be as independent as possible. Avoid deep coupling between features.
+1. Create `src/features/<name>/api/schema.ts` with the zod contracts.
+2. Add `api/server.ts` for the reads Server Components need. Public data gets `'use cache'`, `cacheTag`, and `cacheLife`; user data uses `serverHttp` and stays uncached.
+3. Add `api/actions.ts` for mutations. Use `authActionClient` for anything that touches user data.
+4. If the client must refetch or mutate locally, add `api/keys.ts` and `api/queries.ts`.
+5. Build components. Prefer Server Components; mark leaves `'use client'`.
+6. If the feature owns client-only state, add `store/<name>.slice.ts`, register it in `src/store/rootReducer.ts`, and (if it must survive reloads) a `store/persist.ts` entry listed in `src/store/index.ts`.
+7. Export from `index.ts` and `server.ts`.
+8. Tests: DAL and actions in `api/*.test.ts` (node project), components in `components/*.test.tsx` (jsdom project), and an end-to-end case in `e2e/` when the feature owns a route.
 
-2.  **Public API**:
-    Only import from the `index.ts` of a feature. Do not import directly from internal files (e.g., `import ... from '@/features/auth/components/login-form'` is bad; `import ... from '@/features/auth'` is good).
+See [docs/data-layer.md](../../docs/data-layer.md) for how the pieces interact.
 
-3.  **Shared Code**:
-    If code is shared between multiple features, move it to `src/components/common`, `src/hooks`, or `src/lib`.
+## Rules
 
-4.  **App Layer**:
-    The `src/app` directory (Next.js App Router) should primarily compose features together. It should contain minimal business logic.
-
-## 📝 Sketch: an auth feature
-
-**`src/features/auth/types/auth.types.ts`**
-
-```ts
-export interface User {
-  id: string;
-  email: string;
-}
-```
-
-**`src/features/auth/hooks/useAuth.ts`**
-
-```ts
-import { useState } from 'react';
-import type { User } from '../types/auth.types';
-
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  // ... logic
-  return { user };
-}
-```
-
-**`src/features/auth/components/LoginForm.tsx`**
-
-```tsx
-import { useAuth } from '../hooks/useAuth';
-
-export function LoginForm() {
-  const { user } = useAuth();
-  return <form>{/* ... */}</form>;
-}
-```
-
-**`src/features/auth/index.ts`**
-
-```ts
-export * from './components/LoginForm';
-export * from './hooks/useAuth';
-export type { User } from './types/auth.types';
-```
-
-**Usage in `src/app/[locale]/login/page.tsx`**
-
-```tsx
-import { LoginForm } from '@/features/auth';
-
-export default function LoginPage() {
-  return <LoginForm />;
-}
-```
-
-For a working example with state + persistence, see `src/features/counter/`.
+- **Encapsulation**: features import each other only through barrels. Shared code moves to `src/components`, `src/lib`, or `src/types`.
+- **Thin app layer**: `src/app` composes features and handles routing concerns (metadata, Suspense boundaries, session gating). Business logic lives in features.
+- **Types live with code**: infer from schemas where possible; put cross-cutting types in `src/types`.
+- **No comments explaining what**: the code should read itself. Comments are for non-obvious why.

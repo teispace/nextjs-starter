@@ -31,6 +31,7 @@ v2 is a greenfield rebuild on a new branch; proven modules were ported, everythi
 - `pnpm typegen` runs `next typegen` in development mode unless `NODE_ENV` is set, so a fresh clone type-checks without a `.env` file.
 - **Metadata**: `src/app/manifest.ts`, generated `icon.png` / `apple-icon.png` (`pnpm icons`, replace with real artwork), a `viewport` export with light/dark `themeColor` and `colorScheme`, and `src/lib/seo` with a `JsonLd` component plus `websiteJsonLd` / `organizationJsonLd` / `breadcrumbJsonLd` builders (script-safe serialisation).
 - `pnpm check:deprecated` judges calls by the overload TypeScript actually resolved and follows import aliases, so a deprecated re-export is caught while a library that deprecates one overload of a DOM method no longer trips the gate.
+- **Docs**: rewritten for v2: `README.md`, `AGENTS.md`, `docs/structure.md`, `docs/data-layer.md`, `docs/ui-libraries.md`, `docs/migrating-from-1.x.md`, `docs/adr/`, and the HTTP, WebSocket, i18n, and feature guides.
 - **Observability**: `src/instrumentation.ts` logs every uncaught server error with its digest, route, and request id through pino (`onRequestError`), never the headers. The proxy stamps `X-Request-Id` on every request and response (a well-formed incoming id is kept), so the render, the server HTTP client, and the API share one id; `getRequestLogger()` (`@/lib/logger/request`) returns a child logger bound to it.
 
 ## [1.1.0] — Unreleased on the 1.x line

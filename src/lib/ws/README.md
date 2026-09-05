@@ -1,9 +1,9 @@
 # WebSocket Client
 
-**TL;DR** — Typed Socket.IO client wrapping `socket.io-client`. Cookie-mode auth by default, public/anonymous mode opt-in. Heartbeat, reconnection, and `auth:force:disconnect` handling are built in. Connection state flows through Redux; subscriptions through three small hooks. **Browser-only** — opening a socket from a Server Component throws.
+**TL;DR** — Typed Socket.IO client wrapping `socket.io-client`. Cookie sessions by default, a custom `auth` provider for token handshakes, public/anonymous mode opt-in. Heartbeat, reconnection, and `auth:force:disconnect` handling are built in. Connection state flows through Redux; subscriptions through three small hooks. **Browser-only** — opening a socket from a Server Component throws.
 
 ```
-src/lib/utils/ws/
+src/lib/ws/
 ├─ types/           event maps + payload shapes (the contract)
 ├─ shared/          runtime guard, auth-carrier, URL composer (internal)
 ├─ client/          WsClient class + default `wsClient` singleton (lazy)
@@ -13,7 +13,7 @@ src/lib/utils/ws/
 └─ index.ts         public barrel
 ```
 
-Feature code imports from `@/lib/utils/ws` only. `shared/`, `redux/bridge`, and `client/internals` are private — reaching into them breaks at the next refactor.
+Feature code imports from `@/lib/ws` only. `shared/` and `client/lifecycle-emitter` are private — reaching into them breaks at the next refactor.
 
 ---
 
@@ -47,7 +47,7 @@ Feature code imports from `@/lib/utils/ws` only. `shared/`, `redux/bridge`, and 
 'use client';
 
 import { useEffect } from 'react';
-import { useWsEvent, useWsEmit, useWsStatus } from '@/lib/utils/ws';
+import { useWsEvent, useWsEmit, useWsStatus } from '@/lib/ws';
 
 export function PresenceWidget({ userId }: { userId: string }) {
   const { isConnected } = useWsStatus();
@@ -90,10 +90,8 @@ No new env var. If you change the WS namespace server-side, override via `create
 |---|---|---|
 | `WS_NAMESPACE` | `/ws` | Server-side namespace path |
 | `WS_HEARTBEAT_INTERVAL_MS` | `25_000` | Application-level `ping` cadence. Must be strictly less than the server's per-socket TTL |
-| `WS_TOKEN_RENEWAL_LEAD_MS` | `60_000` | Lead time before access-token expiry (bearer mode only) |
 | `WS_RECONNECTION_DELAY_MIN_MS` | `1_000` | Socket.IO reconnection base delay |
 | `WS_RECONNECTION_DELAY_MAX_MS` | `10_000` | Socket.IO reconnection cap (exponential backoff) |
-| `SAVE_AUTH_TOKENS` | `false` | Cookie-mode (default) vs bearer-mode (re-uses the HTTP layer's flag) |
 
 Tune these only if you've changed the corresponding values on the server — drift can cause socket TTLs to expire mid-connection.
 
@@ -126,7 +124,7 @@ Tune these only if you've changed the corresponding values on the server — dri
                                          └─────────────────┘
 ```
 
-- **`wsClient`** owns one underlying socket. Lifecycle (connect, reconnect, heartbeat, force-disconnect, token renewal) lives here.
+- **`wsClient`** owns one underlying socket. Lifecycle (connect, reconnect, heartbeat, force-disconnect) lives here.
 - **The bridge** subscribes to `wsClient`'s lifecycle emitter and dispatches into the ws slice. It is the **only** code path that touches the slice — never dispatch into it from feature code.
 - **Hooks** read state from the slice (`useWsStatus`) or talk to the socket (`useWsEvent`, `useWsEmit`).
 - **Connection is lazy.** `wsClient.connect()` is called automatically by the first `useWsEvent` subscriber. No subscribers, no socket — the transport doesn't open at module load.
@@ -139,45 +137,43 @@ This section walks through every realistic scenario you'll hit. Read top-to-bott
 
 ### Authentication modes
 
-The WS layer reuses the HTTP layer's `SAVE_AUTH_TOKENS` flag (in `src/lib/config/constants.ts`). Pick one mode for the whole app — mixing per-request makes the auth surface much harder to reason about.
+Sessions are HttpOnly cookies everywhere (see the HTTP README). The socket handshake carries them without any code on your side.
 
-#### Cookie-mode (default, `SAVE_AUTH_TOKENS = false`)
+#### Cookie sessions (default)
 
-After the user logs in via HTTP, the server sets an HttpOnly `access` cookie. When you call `wsClient.connect()`, the browser cookie jar attaches that cookie to the Socket.IO handshake automatically. A typical server-side extractor (auth payload → Authorization header → cookie) reads it and authenticates the socket.
-
-You write **no auth-related code** in cookie-mode. Just `useWsEvent` or `wsClient.connect()` and the rest happens transparently.
+After sign-in the API sets its session cookie. When the socket connects, the browser attaches that cookie to the Socket.IO handshake (`withCredentials: true`) and the gateway authenticates it.
 
 ```tsx
 'use client';
 
-import { useWsEvent } from '@/lib/utils/ws';
+import { useWsEvent } from '@/lib/ws';
 
 export function Notifications() {
-  // The browser cookie does all the auth work. Just subscribe.
-  useWsEvent('error', (err) => console.error(err));
+  // The cookie does all the auth work. Just subscribe.
+  useWsEvent('error', (err) => logger.warn({ err }, 'ws error'));
   return null;
 }
 ```
 
-**Limitation in v1:** tokens never touch JS, so the frontend can't drive in-place `auth:token:renew` (handlers typically expect the refresh token in the payload). When the access token expires the socket disconnects, then reconnects with a fresh access cookie that the HTTP layer refreshed on a parallel API call. One sub-second blip; users almost never notice.
+When the session cookie expires the gateway disconnects the socket; the next HTTP call refreshes the session and Socket.IO reconnects with the fresh cookie. One short blip.
 
-#### Bearer-mode (`SAVE_AUTH_TOKENS = true`)
+#### Custom handshake auth (`auth` provider)
 
-Flip the flag. Now the WS client reads the access token from `secureStorageTokenStore` (`react-secure-storage` wrapper) and sends it as `handshake.auth.token`. Most server-side extractors accept that with highest priority — same code path, different carrier.
-
-Bearer-mode is useful when:
-- You're targeting React Native or a webview where cookies don't behave the same way.
-- The server's CORS posture is restrictive enough that cookie credentials don't flow.
-- You need to debug auth by inspecting the token in DevTools.
-
-If `SAVE_AUTH_TOKENS = true` and no token is stored, `wsClient.connect()` rejects with `WS_AUTH_REQUIRED` **before** opening the socket — you don't get a misleading silent failure.
+Some gateways expect a token in `handshake.auth` (a short-lived WS ticket issued by the API, a device token in a webview). Give the client an `auth` provider; it runs on every connect and reconnect, so the value is always fresh:
 
 ```ts
-// After a successful HTTP login that stored the tokens:
-await wsClient.connect();
-// Or if you don't care about the success/failure boundary:
-wsClient.connect().catch(() => { /* the lifecycle emitter already reported */ });
+import { createWsClient } from '@/lib/ws';
+
+export const chatWsClient = createWsClient({
+  namespace: '/chat',
+  auth: async () => {
+    const ticket = await http.post<{ ticket: string }>('/ws/ticket');
+    return ticket.ok ? { token: ticket.data.ticket } : undefined;
+  },
+});
 ```
+
+Returning `undefined` sends no auth payload. When a provider is configured and yields nothing, `connect()` rejects with `WS_AUTH_REQUIRED` before opening the socket, so a missing credential is a visible failure rather than a silent one.
 
 #### Anonymous mode (no auth at all)
 
@@ -197,7 +193,7 @@ Most apps never call `connect()` explicitly — the hooks lazy-trigger it. But t
 'use client';
 
 import { useEffect } from 'react';
-import { wsClient } from '@/lib/utils/ws';
+import { wsClient } from '@/lib/ws';
 
 // 1. Connect after auth is known to be ready (avoids racing with login flow):
 export function AppShell() {
@@ -409,7 +405,7 @@ If `useWsStatus` is too coarse (you only care about one field, want shallow-equa
 
 ```tsx
 import { useAppSelector } from '@/store/hooks';
-import { selectWsLastError } from '@/lib/utils/ws';
+import { selectWsLastError } from '@/lib/ws';
 
 const error = useAppSelector(selectWsLastError);
 ```
@@ -498,7 +494,7 @@ Anonymous mode reaches only the handlers the server marks public — typically `
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useWsEvent, wsClient } from '@/lib/utils/ws';
+import { useWsEvent, wsClient } from '@/lib/ws';
 
 export function LandingPagePresenceCount() {
   const [online, setOnline] = useState(0);
@@ -524,7 +520,7 @@ The default `wsClient` connects to `/ws`. For separate gateways like `/chat` or 
 
 ```ts
 // src/features/chat/client.ts
-import { createWsClient } from '@/lib/utils/ws';
+import { createWsClient } from '@/lib/ws';
 
 export const chatWsClient = createWsClient({ namespace: '/chat' });
 ```
@@ -535,7 +531,7 @@ The default Redux bridge is wired to `wsClient` only. If you want connection sta
 
 ```ts
 // Custom slice for chat connection state
-import { attachWsBridge } from '@/lib/utils/ws';
+import { attachWsBridge } from '@/lib/ws';
 import { chatWsClient } from '@/features/chat/client';
 
 // Inside a provider effect:
@@ -544,13 +540,13 @@ useEffect(() => attachWsBridge(chatWsClient, dispatch), [dispatch]);
 
 ### Adding custom feature events
 
-`ClientToServerEvents` / `ServerToClientEvents` in `src/lib/utils/ws/types/events.ts` are the contract. To extend, use TypeScript declaration merging — keep the merge file near the feature that introduces the event:
+`ClientToServerEvents` / `ServerToClientEvents` in `src/lib/ws/types/events.ts` are the contract. To extend, use TypeScript declaration merging — keep the merge file near the feature that introduces the event:
 
 ```ts
 // src/features/chat/types/ws-events.ts
-import '@/lib/utils/ws'; // ensure base interface is loaded
+import '@/lib/ws'; // ensure base interface is loaded
 
-declare module '@/lib/utils/ws' {
+declare module '@/lib/ws' {
   interface ClientToServerEvents {
     'message:send': (payload: { roomId: string; content: string }) => void;
   }
@@ -584,7 +580,7 @@ useWsEvent('message:new', (msg) => {           // fully typed
 The `wsClient` singleton is callable from anywhere in the browser bundle. Useful for non-React code paths — analytics, debug consoles, Redux thunks, etc.
 
 ```ts
-import { wsClient } from '@/lib/utils/ws';
+import { wsClient } from '@/lib/ws';
 
 // In a Redux thunk:
 export const sendChatMessage = (roomId: string, content: string) =>
@@ -605,7 +601,7 @@ window.__ws = wsClient;
 
 ### Cleanup on logout
 
-A typical logout flow with WS state:
+Sign-out is a Server Action (`signOut` in `@/features/account`); the WS side is torn down around it:
 
 ```ts
 async function logout() {
@@ -615,14 +611,14 @@ async function logout() {
   // 2. Reset the WS slice to clear stale status / lastError / etc.
   store.dispatch(wsReset());
 
-  // 3. Hit the HTTP logout endpoint — clears the access/refresh cookies.
-  await fetchClient.post('/auth/logout');
+  // 3. The action calls the API and relays its cookie-clearing headers.
+  await signOut();
 
-  // 4. Clear any in-memory auth state (Redux auth slice, secure storage in bearer mode).
-  store.dispatch(authReset());
+  // 4. Drop client caches that held user data.
+  queryClient.clear();
 
-  // 5. Route to login.
-  router.push('/login');
+  // 5. Route to sign-in.
+  router.replace(AppPaths.auth.login);
 }
 ```
 
@@ -630,7 +626,7 @@ async function logout() {
 
 ### Testing components that use the WS layer
 
-The test environment already mocks `react-secure-storage` globally (`test/setup.ts`). For component tests, mock `wsClient` per-test so you can assert on subscribe/emit calls without opening a real socket:
+For component tests, mock `wsClient` per-test so you can assert on subscribe/emit calls without opening a real socket (`test/setup.dom.ts` already wires jest-dom and cleanup):
 
 ```tsx
 import { renderHook, act } from '@testing-library/react';
@@ -642,7 +638,7 @@ const onEventMock = vi.fn();
 const emitMock = vi.fn().mockReturnValue(true);
 const getStatusMock = vi.fn().mockReturnValue('connected');
 
-vi.mock('@/lib/utils/ws/client', () => ({
+vi.mock('@/lib/ws/client', () => ({
   wsClient: {
     onEvent: (...args) => { onEventMock(...args); return () => {}; },
     emit: emitMock,
@@ -651,7 +647,7 @@ vi.mock('@/lib/utils/ws/client', () => ({
   },
 }));
 
-const { useWsEvent, useWsEmit } = await import('@/lib/utils/ws');
+const { useWsEvent, useWsEmit } = await import('@/lib/ws');
 
 describe('MyChatPanel', () => {
   it('subscribes to message:new and emits message:send', () => {
@@ -664,7 +660,7 @@ describe('MyChatPanel', () => {
 });
 ```
 
-For end-to-end-style tests of the client itself (not feature code), see `src/lib/utils/ws/client/ws-client.test.ts` and the `FakeSocket` test utility in `src/lib/utils/ws/__test-utils__/fake-socket.ts`.
+For end-to-end-style tests of the client itself (not feature code), see `src/lib/ws/client/ws-client.test.ts` and the `FakeSocket` test utility in `src/lib/ws/__test-utils__/fake-socket.ts`.
 
 ---
 
@@ -688,7 +684,7 @@ For end-to-end-style tests of the client itself (not feature code), see `src/lib
 Build an additional client for a different namespace, custom URL, or custom `socket.io-client` options. Used for multi-namespace apps (`/chat`, `/notifications`). Each instance is independent.
 
 ```ts
-import { createWsClient } from '@/lib/utils/ws';
+import { createWsClient } from '@/lib/ws';
 
 export const chatWsClient = createWsClient({ namespace: '/chat' });
 ```
@@ -703,18 +699,18 @@ export const chatWsClient = createWsClient({ namespace: '/chat' });
 
 ### Selectors
 
-Exported from `@/lib/utils/ws`. Use them with `useAppSelector` when `useWsStatus` is too coarse:
+Exported from `@/lib/ws`. Use them with `useAppSelector` when `useWsStatus` is too coarse:
 
 `selectWsStatus`, `selectWsSocketId`, `selectWsLastError`, `selectWsForceDisconnectReason`, `selectWsReconnectable`, `selectWsConnectedAt`, `selectWsAnonymous`, `selectWsIsConnected`, `selectWsIsDisconnectedFatally`.
 
 ### Types
 
-All exported from `@/lib/utils/ws`:
+All exported from `@/lib/ws`:
 
 - **Events:** `ClientToServerEvents`, `ServerToClientEvents`, `ClientEventName`, `ServerEventName`
-- **Payloads:** `WsErrorPayload`, `WsForceDisconnectPayload`, `WsPongPayload`, `WsPresencePayload`, `WsPresenceStatusPayload`, `WsTokenRenewedPayload`
+- **Payloads:** `WsErrorPayload`, `WsForceDisconnectPayload`, `WsPongPayload`, `WsPresencePayload`, `WsPresenceStatusPayload`
 - **Disconnect:** `WS_DISCONNECT_REASON` (const), `WsDisconnectReason` (union), `isReconnectableReason()`
-- **Transport:** `WsStatus`, `WsClientOptions`, `WsConnectOptions`
+- **Transport:** `WsStatus`, `WsClientOptions`, `WsConnectOptions`, `WsAuthProvider`
 
 ---
 
@@ -741,15 +737,11 @@ Many servers enforce a maximum connection age (e.g. 24 h). The client auto-recon
 
 ### "Sessions revoked when I refresh the page"
 
-Cookie-mode relies on the browser carrying the access cookie. If your dev setup has the frontend on a different origin from the API (e.g. `localhost:3000` vs `localhost:8080`), check whatever `SameSite` / cookie-domain settings the server uses.
+Cookie sessions rely on the browser carrying the session cookie. If your dev setup has the frontend on a different origin from the API (e.g. `localhost:3000` vs `localhost:8080`), check whatever `SameSite` / cookie-domain settings the server uses.
 
 ### "Connection drops every ~2 minutes"
 
 Application-level heartbeat isn't reaching the server. The client sends `ping` every 25 s — if a corporate proxy or service-worker is blocking outgoing pings, the server's socket TTL expires and the next push event finds no socket. Check that `transports: ['websocket']` is actually negotiated (look for `Sec-WebSocket-Protocol` in DevTools) and that no service worker is intercepting `/ws`.
-
-### Tests fail with "Cannot set properties of null (setting 'textBaseline')"
-
-`react-secure-storage` constructs its encryption service at import time and calls `<canvas>.getContext`, which jsdom doesn't implement. Already handled — `test/setup.ts` stubs `react-secure-storage` globally. If you hit this in a fresh test file, make sure your test config uses `test/setup.ts` as `setupFiles`.
 
 ### "Two sockets open at once during dev"
 
@@ -759,4 +751,4 @@ React 18+ in Strict Mode double-invokes effects in dev. The lazy-connect path is
 
 ## Related docs
 
-- HTTP layer (sibling) → `src/lib/utils/http/README.md`
+- HTTP layer (sibling) → `src/lib/http/README.md`
