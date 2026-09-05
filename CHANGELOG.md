@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Security
 
-- **HTTP clients never refresh tokens on the server.** The refresh singleflight is process-wide and keyed only by upstream URL, so during SSR a refresh triggered by one user's 401 could be awaited by another user's concurrent 401 and the second request retried with the first user's token. Both clients now return a 401 as a value on the server with no refresh, no retry, and no shared state. Regression test in `src/lib/utils/http/server-refresh.test.ts`.
+- **HTTP clients never refresh tokens on the server.** The refresh singleflight is process-wide and keyed only by upstream URL, so during SSR a refresh triggered by one user's 401 could be awaited by another user's concurrent 401 and the second request retried with the first user's token. Both clients now return a 401 as a value on the server with no refresh, no retry, and no shared state. Regression tests in `src/lib/utils/http/{fetch,axios}-client/server-refresh.test.ts`.
 - Bumped `next` and `@next/bundle-analyzer` to 16.3.4 (clears nine advisories against 16.2.9, including a proxy bypass affecting single-locale Turbopack apps).
 
 ### Fixed

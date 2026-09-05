@@ -2,14 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TokenStore } from '@/types';
 
-import { AxiosClient } from './axios-client/axios-client';
-import * as axiosRefresh from './axios-client/token-refresh';
-import { __resetRefreshManagersForTests } from './client-utils';
-import { FetchClient } from './fetch-client/fetch-client';
-import * as fetchRefresh from './fetch-client/token-refresh';
+import { __resetRefreshManagersForTests } from '../client-utils';
+import { FetchClient } from './fetch-client';
+import * as fetchRefresh from './token-refresh';
 
-// Force the server runtime for this file only. Both HTTP clients read the
-// shared runtime helper, so mocking the leaf module covers fetch and axios.
+// Force the server runtime for this file only.
 vi.mock('@/lib/utils/runtime', () => ({
   isBrowser: () => false,
   isServer: () => true,
@@ -36,8 +33,11 @@ function makeTokenStore(): TokenStore {
  * process-wide and keyed only by baseURL, so a server-side refresh would be
  * shared by every concurrent request. On the server a 401 must surface as a
  * value with no refresh attempt, no retry, and no unauthorized callback.
+ *
+ * Lives next to the client it covers so the axios and fetch variants can be
+ * removed independently by next-maker.
  */
-describe('HTTP clients never refresh tokens on the server', () => {
+describe('fetch client never refreshes tokens on the server', () => {
   beforeEach(() => {
     __resetRefreshManagersForTests();
   });
@@ -47,7 +47,7 @@ describe('HTTP clients never refresh tokens on the server', () => {
     vi.restoreAllMocks();
   });
 
-  it('fetch client: 401 is returned as-is, refresh is never called', async () => {
+  it('returns a 401 as-is and never calls refresh', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: 401, message: 'Unauthorized' }), {
         status: 401,
@@ -65,40 +65,5 @@ describe('HTTP clients never refresh tokens on the server', () => {
     if (result.isLeft()) expect(result.value.status).toBe(401);
     expect(refreshSpy).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    // onUnauthorized is the browser redirect; it stays wired but the server
-    // implementation is a no-op, so its invocation is not what we guard here.
-  });
-
-  it('axios client: 401 is returned as-is, refresh is never called', async () => {
-    const refreshSpy = vi.spyOn(axiosRefresh, 'refreshAuthToken');
-    const client = new AxiosClient({ baseURL: BASE, tokenStore: makeTokenStore() });
-
-    // Route every request through a stub adapter that answers 401 once.
-    const axiosInstance = (client as unknown as { axios: import('axios').AxiosInstance }).axios;
-    let calls = 0;
-    axiosInstance.defaults.adapter = async (config) => {
-      calls++;
-      const error = new (await import('axios')).AxiosError(
-        'Unauthorized',
-        'ERR_BAD_REQUEST',
-        config,
-        undefined,
-        {
-          status: 401,
-          statusText: 'Unauthorized',
-          headers: {},
-          config,
-          data: { status: 401, message: 'Unauthorized' },
-        },
-      );
-      throw error;
-    };
-
-    const result = await client.get('/auth/me');
-
-    expect(result.isLeft()).toBe(true);
-    if (result.isLeft()) expect(result.value.status).toBe(401);
-    expect(refreshSpy).not.toHaveBeenCalled();
-    expect(calls).toBe(1);
   });
 });
