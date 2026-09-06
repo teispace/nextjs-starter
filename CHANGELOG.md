@@ -2,50 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2.0.0-alpha.5] — 2026-09-06
+## [2.0.0] — 2026-09-06
 
-### Added
+v2 is a greenfield rebuild; proven modules were ported, everything else was rewritten. Consumers upgrade through next-maker 5, not by hand. The `2.0.0-alpha.*` tags remain in the repository as the record of how this release was reached.
 
-- **Authorization.** `AuthUser` carries optional `roles` and `permissions`; `hasRole`, `hasPermission`, and `hasEveryPermission` hide controls, `requireRole` and `requirePermission` guard pages through `forbidden()`, and a Server Action declares what it needs in `.metadata({ name, permissions })`. Every check fails closed, and none of them replace the API's own enforcement. `experimental.authInterrupts` is on, with `forbidden.tsx` and `unauthorized.tsx` in both layout variants.
+### Added since the first pre-release
+
+- **Authorization.** `AuthUser` carries optional `roles` and `permissions`; `hasRole`, `hasPermission`, and `hasEveryPermission` hide controls, `requireRole` and `requirePermission` guard pages through `forbidden()`, and a Server Action declares what it needs in `.metadata({ name, permissions })`. Every check fails closed, and none of them replaces the API's own enforcement. `experimental.authInterrupts` is on, with `forbidden.tsx` and `unauthorized.tsx` in both layout variants.
 - **Rate limiting.** `rateLimit`, `callerKey`, and `tooManyRequests` in `@/lib/security`, applied to `POST /api/auth/refresh` (10 per minute) and the BFF proxy (120 per minute), answering 429 with `Retry-After` and the `RateLimit-*` headers. The default store is per process; `RateLimitStore` is two methods so a shared one drops in.
+- **Twelve guides in `docs/`**, indexed by `docs/README.md`: getting started, data layer, results and errors, client state, auth and sessions, testing, SEO, security, observability, deployment, recipes, and UI libraries. They explain the reasoning behind the conventions, with worked examples taken from the code that ships here.
+- **A Claude skill** at `.claude/skills/starter/`: which layer a piece of code belongs to, the rules that fail a build when broken, and the gates to run before finishing. It travels with `AGENTS.md`.
+
+### Fixed since the first pre-release
+
+- **Security headers over http.** `Strict-Transport-Security` and the CSP `upgrade-insecure-requests` directive are sent only when `NEXT_PUBLIC_APP_URL` is https. A production build served over plain http previously made WebKit upgrade every asset request, so pages never hydrated. CI now runs Playwright on WebKit as well as Chromium.
+- **`.env.example` ships a working `NEXT_PUBLIC_APP_URL`.** The variable is required in production builds, so `build` and `validate` failed out of the box after copying the example.
+- **`vite` is declared explicitly.** Vitest 5 needs it as a non-optional peer; only yarn projects broke, and they broke at `test`.
+- Documentation rows that point at optional features carry markdown composition anchors, so a generated project never links to a file it does not have.
 
 ### Verified
 
-- The flows that need a real API were run against one: cookie forwarding through the proxy, a refresh that relays `Set-Cookie`, server-side session reads, and both live rate limits.
-- The Docker image was built and run: around 300 MB, unprivileged user, correct security headers, JSON logs.
-
-## [2.0.0-alpha.4] — 2026-09-06
-
-### Added
-
-- **Eleven guides in `docs/`**, indexed by `docs/README.md`: getting started, results and errors, client state, auth and sessions, testing, SEO, security, observability, deployment, and recipes, alongside the existing data-layer guide. They explain the reasoning behind the conventions, with worked examples taken from the code that ships here.
-- **A Claude skill** at `.claude/skills/starter/`: which layer a piece of code belongs to, the rules that fail a build when broken, and the gates to run before finishing. It travels with `AGENTS.md`, so turning the agent-rules option off removes it too.
-
-### Changed
-
-- Documentation rows that point at optional features carry markdown composition anchors, so a generated project never links to a file it does not have.
-- `@playwright/test` 1.63, `lint-staged` 17.5.
-
-## [2.0.0-alpha.3] — 2026-09-06
-
-### Fixed
-
-- **`vite` is declared explicitly.** Vitest 5 needs it as a non-optional peer dependency. pnpm, npm, and bun install peers automatically, so only yarn projects broke, and they broke at `test` with `Cannot find package 'vite'`. Declaring it makes the dependency real rather than a side effect of the package manager.
-
-## [2.0.0-alpha.2] — 2026-09-06
-
-### Fixed
-
-- **`.env.example` ships a working `NEXT_PUBLIC_APP_URL`** (`http://localhost:3000`, kept by the `-public` marker that `env:sync` honours). The variable is required in production builds, so `pnpm build` and `pnpm validate` failed out of the box after `cp .env.example .env`. Deployments still set their own value, and Docker builds still need the build arg because `.env` is ignored there.
-
-## [2.0.0-alpha.1] — 2026-09-05
-
-### Fixed
-
-- **Security headers over http**: `Strict-Transport-Security` and the CSP `upgrade-insecure-requests` directive are sent only when `NEXT_PUBLIC_APP_URL` is https. A production build served over plain http (a local `pnpm start`, an internal preview) previously made WebKit upgrade every asset request to https, so pages never hydrated. `securityHeaders` and `buildCsp` take an explicit `https` flag; `servesHttps` in `src/lib/config/constants.ts` derives it.
-- **CI** runs the Playwright suite on WebKit as well as Chromium; the smoke test asserts the https-only headers stay off over http.
-
-## [2.0.0-alpha.0] — 2026-09-05
+- Every command of the CLI that generates this template, against the published package, followed by the generated project's own gates.
+- Each option switched on an existing project, with no conflict markers and all gates passing afterwards.
+- The flows that need a real API, run against one: cookie forwarding through the proxy, a refresh that relays `Set-Cookie`, server-side session reads, and both live rate limits.
+- The Docker image built and run: around 300 MB, unprivileged user, correct security headers, JSON logs.
+- Four package managers, and a Turborepo workspace with three apps.
 
 v2 is a greenfield rebuild on a new branch; proven modules were ported, everything else was rewritten. Consumers upgrade through next-maker 5, not by hand.
 
