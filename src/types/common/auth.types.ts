@@ -8,4 +8,12 @@ export interface AuthUser {
   email: string;
   username: string;
   isEmailVerified: boolean;
+  /**
+   * Claims the API sends when it models them. Both are optional because many
+   * APIs model neither, and an absent claim grants nothing: every check in
+   * `@/lib/auth` fails closed. The API remains the authority on what a
+   * request may do; these decide which screen a visitor sees.
+   */
+  roles?: string[];
+  permissions?: string[];
 }

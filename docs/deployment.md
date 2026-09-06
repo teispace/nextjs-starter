@@ -57,6 +57,12 @@ carry a developer's local file.
 `docker-compose.yml` passes the same values through from your environment and
 is the quickest way to check the image end to end.
 
+The image is built and run before each release: it comes out around 300 MB,
+runs as an unprivileged user, serves the security headers described in
+[security](security.md), and logs JSON. The build needs a lockfile, so a
+project generated with `--no-install` has to install once before its first
+`docker build`.
+
 In a workspace, each app has its own Dockerfile built from the repository
 root with `turbo prune`, so an image contains one app and the workspace
 packages it uses:

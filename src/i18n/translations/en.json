@@ -43,5 +43,17 @@
     "dashboardTitle": "Dashboard",
     "dashboardDescription": "Your account overview.",
     "welcome": "Welcome, {name}"
+  },
+  "Forbidden": {
+    "code": "403",
+    "title": "You do not have access",
+    "description": "Your account is signed in but is not allowed to view this page.",
+    "goHome": "Go home"
+  },
+  "Unauthorized": {
+    "code": "401",
+    "title": "Sign in first",
+    "description": "This page needs a signed-in account.",
+    "goHome": "Go home"
   }
 }

@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // Lets the Data Access Layer mark objects that must never reach the client.
     taint: true,
+    // `forbidden()` and `unauthorized()`. Authorization failures deserve their
+    // own page and status, not a redirect that loses what the visitor wanted.
+    authInterrupts: true,
   },
   headers: async () => [
     {
