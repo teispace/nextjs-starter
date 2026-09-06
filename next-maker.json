@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "starter": {
     "name": "@teispace/nextjs-starter",
-    "version": "2.0.0-alpha.2",
+    "version": "2.0.0-alpha.3",
     "minCli": "5.0.0"
   },
   "options": {
@@ -290,6 +290,7 @@
         ],
         "anchors": ["tests"],
         "devPackages": [
+          "vite",
           "vitest",
           "@vitest/coverage-v8",
           "jsdom",
