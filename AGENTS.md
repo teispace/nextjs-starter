@@ -6,6 +6,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Teispace Next.js Starter
 
+The guides in `docs/` explain the reasoning behind every rule below; start
+with `docs/README.md`. `.claude/skills/starter/SKILL.md` is the short version
+for a coding session.
+
 Server-first App Router template. Next 16.3 (Cache Components), React 19, TypeScript 7, Tailwind v4, pnpm 11, Biome, TanStack Query, next-safe-action, Redux Toolkit, next-intl.
 
 ## Stack decisions (don't fight these)

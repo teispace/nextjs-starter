@@ -14,6 +14,7 @@
   - `unwrapCall`: `name(x)` replaced by `x` in a file.
   - `packages` / `devPackages` / `scripts` / `env` / `packageJsonKeys`: entries removed from `package.json` and `.env.example`.
 - **always.remove**: starter-only files that never ship.
+- **always.anchors**: anchor ids stripped from every project regardless of the answers, for content that only makes sense in this repository. `docs/README.md` uses `starterDocs` to drop the paragraph linking the docs that `always.remove` deletes.
 - **packageManagers**: per-manager `packageManager` field, lockfile, overlay, and files to drop.
 
 Order of operations in the CLI: package-manager overlay, removals, feature overlays, anchors and unwraps, `package.json` and env edits, package-manager command rewrites, then a formatting pass. Files an overlay adds are subject to the removals of every other feature (an overlay's tests still leave when tests are off), except removals owned by a sibling of the overlay's own option: the `zustand` overlay replaces what the `redux` removal deleted and must survive it.
@@ -39,7 +40,8 @@ Rules:
 - An anchor on its own line removes itself and the next line.
 - A trailing anchor removes its own line.
 - `:start` / `:end` pairs remove everything between them, inclusive.
-- Use `{/* ... */}` inside JSX, `#` in YAML, shell, and `.env.example`, `/* */` in CSS.
+- Use `{/* ... */}` inside JSX, `#` in YAML, shell, and `.env.example`, `/* */` in CSS, and `<!-- ... -->` in Markdown.
+- Markdown anchors are how documentation stays honest: a table row that links an optional feature's guide carries a trailing anchor, so a project without that feature never links to a file it does not have.
 - A wrapper element (`<StoreProvider>`) cannot be anchored; list it under `unwrapJsx` instead.
 - Biome keeps a comment attached to the statement below it, so anchors survive formatting and import sorting. Keep one anchor per line and never rely on an anchor spanning a formatter-reflowed construct.
 
