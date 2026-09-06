@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0-alpha.3] — 2026-09-06
+
+### Fixed
+
+- **`vite` is declared explicitly.** Vitest 5 needs it as a non-optional peer dependency. pnpm, npm, and bun install peers automatically, so only yarn projects broke, and they broke at `test` with `Cannot find package 'vite'`. Declaring it makes the dependency real rather than a side effect of the package manager.
+
 ## [2.0.0-alpha.2] — 2026-09-06
 
 ### Fixed
