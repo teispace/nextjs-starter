@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0-alpha.2] — 2026-09-06
+
+### Fixed
+
+- **`.env.example` ships a working `NEXT_PUBLIC_APP_URL`** (`http://localhost:3000`, kept by the `-public` marker that `env:sync` honours). The variable is required in production builds, so `pnpm build` and `pnpm validate` failed out of the box after `cp .env.example .env`. Deployments still set their own value, and Docker builds still need the build arg because `.env` is ignored there.
+
 ## [2.0.0-alpha.1] — 2026-09-05
 
 ### Fixed

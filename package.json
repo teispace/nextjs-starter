@@ -1,6 +1,6 @@
 {
   "name": "teispace",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "A production-ready Next.js starter template with TypeScript, Tailwind CSS, Redux Toolkit, and more.",
   "keywords": [
     "nextjs",
