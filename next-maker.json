@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "starter": {
     "name": "@teispace/nextjs-starter",
-    "version": "2.0.0-alpha.3",
+    "version": "2.0.0-alpha.4",
     "minCli": "5.0.0"
   },
   "options": {
@@ -113,6 +113,7 @@
     }
   },
   "always": {
+    "anchors": ["starterDocs"],
     "remove": [
       "CHANGELOG.md",
       "LICENSE",
@@ -439,7 +440,7 @@
         "agentRules": [true]
       },
       "off": {
-        "remove": ["AGENTS.md", "CLAUDE.md"]
+        "remove": ["AGENTS.md", "CLAUDE.md", ".claude/**"]
       }
     }
   },

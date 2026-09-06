@@ -107,18 +107,36 @@ Adding a variable: declare it in the right group in `src/lib/env/index.ts`, add 
 
 ## Documentation
 
-- [Agent and contributor rules](AGENTS.md)
-- [Data layer: DAL, actions, queries, caching, auth](docs/data-layer.md)
-- [Feature architecture](src/features/README.md)
-- [HTTP client](src/lib/http/README.md)
-- [WebSocket client](src/lib/ws/README.md)
-- [Internationalization](src/i18n/README.md)
-- [UI libraries: shadcn/ui, Radix, MUI, Mantine, HeroUI](docs/ui-libraries.md)
-- [Migrating from 1.x](docs/migrating-from-1.x.md)
-- [Composition manifest for next-maker](docs/composition.md)
-- [Architecture decision records](docs/adr/README.md)
-- [Full project structure](docs/structure.md)
-- [Changelog](CHANGELOG.md)
+Start at **[docs/README.md](docs/README.md)**, which orders the guides and
+explains the four rules the whole architecture follows.
+
+| | |
+| :-- | :-- |
+| [Getting started](docs/getting-started.md) | Run it, read the demo feature, make the first change |
+| [Data layer](docs/data-layer.md) | DAL, actions, queries, caching, sessions |
+| [Results and errors](docs/results-and-errors.md) | Why nothing throws, and what to do with a failure |
+| [Client state](docs/state.md) | What belongs in the store, persistence, hydration |
+| [Auth and sessions](docs/auth.md) | Cookie-only sessions, guards, refresh, cookie relay |
+| [Testing](docs/testing.md) | Node, component, and end-to-end patterns |
+| [SEO](docs/seo.md) | Metadata, canonical and hreflang, JSON-LD, sitemap |
+| [Security](docs/security.md) | Headers, the three CSP modes, nonces |
+| [Observability](docs/observability.md) | Structured logs, request ids, error reporting |
+| [Deployment](docs/deployment.md) | Env vars, standalone, Docker, release checklist |
+| [Recipes](docs/recipes.md) | CRUD, pagination, optimistic updates, uploads, realtime |
+
+Reference: [feature architecture](src/features/README.md),
+[HTTP client](src/lib/http/README.md),
+[WebSocket client](src/lib/ws/README.md),
+[internationalization](src/i18n/README.md),
+[UI libraries](docs/ui-libraries.md),
+[agent and contributor rules](AGENTS.md).
+
+Starter-only, removed from generated projects:
+[migrating from 1.x](docs/migrating-from-1.x.md),
+[composition manifest](docs/composition.md),
+[decision records](docs/adr/README.md),
+[full project structure](docs/structure.md),
+[changelog](CHANGELOG.md).
 
 ## Contributing
 

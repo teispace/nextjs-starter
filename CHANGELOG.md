@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0-alpha.4] — 2026-09-06
+
+### Added
+
+- **Eleven guides in `docs/`**, indexed by `docs/README.md`: getting started, results and errors, client state, auth and sessions, testing, SEO, security, observability, deployment, and recipes, alongside the existing data-layer guide. They explain the reasoning behind the conventions, with worked examples taken from the code that ships here.
+- **A Claude skill** at `.claude/skills/starter/`: which layer a piece of code belongs to, the rules that fail a build when broken, and the gates to run before finishing. It travels with `AGENTS.md`, so turning the agent-rules option off removes it too.
+
+### Changed
+
+- Documentation rows that point at optional features carry markdown composition anchors, so a generated project never links to a file it does not have.
+- `@playwright/test` 1.63, `lint-staged` 17.5.
+
 ## [2.0.0-alpha.3] — 2026-09-06
 
 ### Fixed
