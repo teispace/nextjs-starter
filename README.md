@@ -27,7 +27,7 @@ Most projects should not clone this repository directly. [`@teispace/next-maker`
 
 ```bash
 pnpm install
-cp .env.example .env    # optional in development: every variable has a dev default
+cp .env.example .env    # dev defaults cover `dev`; production builds need NEXT_PUBLIC_APP_URL
 pnpm dev
 ```
 
