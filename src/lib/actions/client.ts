@@ -1,6 +1,7 @@
 import { createSafeActionClient, returnServerError } from 'next-safe-action';
 import { z } from 'zod';
 
+import { hasEveryPermission, hasRole } from '@/lib/auth/authorize';
 import { getCurrentUser } from '@/lib/auth/session';
 import { generateRequestId } from '@/lib/http/shared';
 import { logger } from '@/lib/logger';
@@ -27,7 +28,13 @@ import { ACTION_ERROR_CODE, type ActionError, actionError, toActionError } from 
  * ```
  */
 export const actionClient = createSafeActionClient({
-  defineMetadataSchema: () => z.object({ name: z.string().min(1) }),
+  defineMetadataSchema: () =>
+    z.object({
+      name: z.string().min(1),
+      /** Claims the caller must hold. Enforced by `authActionClient`. */
+      roles: z.array(z.string()).optional(),
+      permissions: z.array(z.string()).optional(),
+    }),
   handleServerError: (error, { metadata }): ActionError => {
     const mapped = toActionError(error);
     logger.error(
@@ -47,10 +54,28 @@ export const actionClient = createSafeActionClient({
   return result;
 });
 
-export const authActionClient = actionClient.use(async ({ next }) => {
+export const authActionClient = actionClient.use(async ({ next, metadata }) => {
   const user = await getCurrentUser();
   if (!user) {
     returnServerError(actionError(ACTION_ERROR_CODE.UNAUTHENTICATED, 'Sign in to continue.', 401));
   }
+
+  // Claims declared in `.metadata()` are checked here so the rule sits next to
+  // the action's name rather than in its body. The API still enforces the real
+  // one: this refuses the obviously wrong call and keeps the message honest.
+  const { roles, permissions } = metadata;
+  const allowed =
+    (!roles || hasRole(user, ...roles)) &&
+    (!permissions || hasEveryPermission(user, ...permissions));
+  if (!allowed) {
+    logger.warn(
+      { action: metadata.name, userId: user.id, roles, permissions },
+      'Server action refused: caller lacks the declared claims',
+    );
+    returnServerError(
+      actionError(ACTION_ERROR_CODE.FORBIDDEN, 'You do not have access to do that.', 403),
+    );
+  }
+
   return next({ ctx: { user } });
 });

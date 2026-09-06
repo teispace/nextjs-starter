@@ -87,15 +87,91 @@ The proxy stamps `X-Request-Id` on every request, the server forwards it
 upstream, and it appears in log lines and error reports. When your API logs
 it too, one identifier follows a request through both systems.
 
-## The two decisions that are yours
+## Authorization
 
-1. **Authorization.** This application checks that a session exists. It does
-   not model roles or permissions, because those belong to the API that owns
-   the data. Guards here decide which screen someone sees, not what they may
-   read.
-2. **Abuse protection.** There is no rate limiting on Route Handlers or
-   Server Actions. Both are public endpoints. Put limits in front of the API,
-   at the edge, or add them to the handlers before launch.
+`AuthUser` carries optional `roles` and `permissions`, and `@/lib/auth`
+turns them into checks:
+
+```ts
+import { hasPermission, requirePermission, requireRole } from '@/lib/auth';
+
+// In a page, under Suspense. Signed out redirects to sign in; signed in
+// without the claim renders forbidden.tsx with a 403.
+const user = await requireRole(['admin'], AppPaths.dashboard);
+const user = await requirePermission(['invoice.write']);
+
+// In a component, to hide a control the user cannot use.
+{hasPermission(user, 'invoice.delete') ? <DeleteButton /> : null}
+```
+
+An action declares what it needs next to its name, and the client refuses
+the call before the body runs:
+
+```ts
+export const deleteInvoice = authActionClient
+  .metadata({ name: 'invoice.delete', permissions: ['invoice.delete'] })
+```
+
+Three properties matter:
+
+- **It fails closed.** An API that sends neither claim grants nothing, and a
+  signed-out visitor fails every check.
+- **`forbidden()` and `unauthorized()`** render their own pages instead of a
+  redirect that loses what the visitor wanted. They need
+  `experimental.authInterrupts`, which `next.config.ts` enables. The page
+  carries `noindex`, but read the note below about its status code.
+- **It is not the enforcement point.** The API owns authorization and must
+  reject anything it should not serve. These checks decide which screen
+  someone sees, which is why they can safely live on this side.
+
+### The status code of a refused page
+
+A guard sits under `<Suspense>`, because reading the session is request data
+and Cache Components refuses to prerender a route that reads it in the
+shell. By the time the guard runs, the response has started streaming and
+its status is already 200, so the visitor sees the 403 page while the
+transport says 200. That is a property of streaming, not of these helpers.
+
+It does not matter for a person, who reads the page. It matters for machine
+clients and crawlers. When a real status is required, enforce it where the
+response has not started: a Route Handler, or the proxy in front. Moving the
+guard into the page body to get the status is not an option here; it fails
+the build, which is the framework telling you the route can no longer be
+prerendered.
+
+## Rate limiting
+
+Route Handlers are public endpoints, and each one here costs an upstream
+request, so both ship with a fixed-window limit:
+
+| Endpoint | Limit | Why |
+| :-- | :-- | :-- |
+| `POST /api/auth/refresh` | 10 per minute per address | The browser refreshes once per 401; a stolen cookie retries forever. |
+| `/api/backend/*` (BFF) | 120 per minute per address | One browser request becomes one API request. |
+
+A refused caller gets a 429 with `Retry-After` and the `RateLimit-*`
+headers, so a well-behaved client backs off instead of guessing.
+
+```ts
+const limit = await rateLimit({ key: await callerKey('report-export'), limit: 5, windowMs: 60_000 });
+if (!limit.ok) return tooManyRequests(limit);
+```
+
+Two limits of the default, stated plainly:
+
+- **The store is a map in one process.** Across several instances each keeps
+  its own count, so the effective limit multiplies by the instance count.
+  `RateLimitStore` is two methods; implement it against Redis or your edge
+  provider and pass it in, or put the limit in front of the application.
+- **The caller's address comes from proxy headers.** A client can send
+  `x-forwarded-for` itself, so this is only meaningful when a proxy you
+  control overwrites it. Behind nothing, anyone can pick their own bucket.
+
+## The decision that is still yours
+
+Authorization here shapes the UI; the API must enforce it. If your API does
+not check permissions on every endpoint it serves, adding roles to this
+application changes nothing about who can read what.
 
 ## Before launch
 
@@ -103,8 +179,10 @@ it too, one identifier follows a request through both systems.
 - The public URL is https, so HSTS is actually sent.
 - Every third-party origin is named in the policy.
 - Route Handlers and Server Actions validate input with zod, and every action
-  that touches user data uses `authActionClient`.
-- Rate limiting exists somewhere in the path.
+  that touches user data uses `authActionClient`, with the claims it needs
+  in its metadata.
+- The rate limiter uses a shared store, or a limit sits in front of the app,
+  and the proxy in front overwrites `x-forwarded-for`.
 - `pnpm audit` is clean, and `minimumReleaseAge` in the workspace file is
   still on: it refuses packages published in the last day, so a compromised
   release is usually yanked before it can reach an install.

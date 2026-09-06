@@ -11,6 +11,9 @@ vi.mock('@/lib/http/server', () => ({
 vi.mock('@/lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ 'x-forwarded-for': '203.0.113.4' }),
+}));
 
 import { POST } from './route';
 
@@ -58,5 +61,25 @@ describe('POST /api/auth/refresh', () => {
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')));
     expect((await POST()).status).toBe(502);
+  });
+});
+
+// Last on purpose: the route uses the module-level limiter, so exhausting the
+// window here would refuse the requests the tests above make.
+describe('rate limiting', () => {
+  it('refuses a flood from one caller with 429 and a Retry-After', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 204 })),
+    );
+
+    const statuses: number[] = [];
+    for (let i = 0; i < 12; i++) statuses.push((await POST()).status);
+
+    expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
+    const refused = await POST();
+    expect(refused.status).toBe(429);
+    expect(Number(refused.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(refused.headers.get('ratelimit-limit')).toBe('10');
   });
 });

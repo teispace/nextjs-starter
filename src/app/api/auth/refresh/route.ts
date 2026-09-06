@@ -2,6 +2,7 @@ import { AppApis } from '@/lib/config/app-apis';
 import { getServerApiBaseUrl, readForwardableCookieHeader } from '@/lib/http/server';
 import { generateRequestId, REQUEST_ID_HEADER } from '@/lib/http/shared';
 import { logger } from '@/lib/logger';
+import { callerKey, rateLimit, tooManyRequests } from '@/lib/security/rate-limit';
 
 /**
  * Session refresh, browser-facing.
@@ -12,7 +13,26 @@ import { logger } from '@/lib/logger';
  * API answers with. The universal HTTP client calls it once on a 401 and
  * replays the original request when it succeeds.
  */
+/**
+ * A refresh costs an upstream request, and a stolen or expired cookie will
+ * retry forever without a limit. Ten per minute per address is far above
+ * what the browser client does on its own (it refreshes once per 401) and
+ * far below what a loop achieves.
+ */
+const REFRESH_LIMIT = 10;
+const REFRESH_WINDOW_MS = 60_000;
+
 export async function POST(): Promise<Response> {
+  const limit = await rateLimit({
+    key: await callerKey('auth-refresh'),
+    limit: REFRESH_LIMIT,
+    windowMs: REFRESH_WINDOW_MS,
+  });
+  if (!limit.ok) {
+    logger.warn({ retryAfter: limit.retryAfter }, 'Session refresh rate limited');
+    return tooManyRequests(limit);
+  }
+
   const cookie = await readForwardableCookieHeader();
   if (!cookie) return new Response(null, { status: 401 });
 

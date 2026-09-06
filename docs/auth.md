@@ -107,6 +107,47 @@ const result = await serverHttp.post<void>(AppApis.auth.logout, undefined, {
 store, which is writable only in Server Actions and Route Handlers. Sign-in,
 sign-out, and anything else that rotates the session needs it.
 
+## Authorization
+
+Being signed in and being allowed are different questions.
+`AuthUser` carries optional `roles` and `permissions`, and the helpers in
+`@/lib/auth` read them:
+
+| Helper | Use |
+| :-- | :-- |
+| `hasRole(user, ...roles)` | Hide a control the user cannot use. |
+| `hasPermission(user, ...permissions)` | The same, per permission. |
+| `hasEveryPermission(user, ...permissions)` | When all of them are required. |
+| `requireRole(roles, returnTo?)` | Guard a page. Signed out redirects to sign in; signed in without the role renders `forbidden.tsx`. |
+| `requirePermission(permissions, returnTo?)` | The same, per permission. |
+
+```tsx
+async function AdminPanel() {
+  const user = await requireRole(['admin'], AppPaths.dashboard);
+  return <Panel user={user} />;
+}
+```
+
+Actions declare their claims in metadata, so the rule sits with the action's
+name and the call is refused before the body runs:
+
+```ts
+export const deleteInvoice = authActionClient
+  .metadata({ name: 'invoice.delete', permissions: ['invoice.delete'] })
+  .inputSchema(z.object({ id: z.string() }))
+  .action(async ({ parsedInput, ctx }) => { /* ctx.user holds the claim */ });
+```
+
+Call a guard under `<Suspense>`, like any other read of request data. The
+response has already started streaming when it runs, so the 403 page renders
+with a 200 status; see the note in [security](security.md#the-status-code-of-a-refused-page)
+for when that matters and what to do about it.
+
+Every check fails closed: an API that models no claims grants none, and an
+empty list grants nothing. And none of it is the enforcement point. The API
+owns authorization and must reject what it should not serve; these checks
+exist so people see the right screen instead of a wall of failed requests.
+
 ## Same-origin mode
 
 With the `bff` option on, browser calls go to `/api/backend/...` on this

@@ -15,6 +15,9 @@ vi.mock('@/lib/http/server', () => ({
 vi.mock('@/lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers({ 'x-forwarded-for': '203.0.113.4' }),
+}));
 
 import { GET, POST } from './route';
 

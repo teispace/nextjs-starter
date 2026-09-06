@@ -1,0 +1,25 @@
+import { getTranslations } from 'next-intl/server';
+
+import { Link } from '@/i18n/navigation';
+
+/**
+ * Rendered by `unauthorized()` from `next/navigation`. Enabled by
+ * `experimental.authInterrupts` in `next.config.ts`.
+ */
+export default async function Unauthorized() {
+  const t = await getTranslations('Unauthorized');
+
+  return (
+    <div className="flex min-h-dvh flex-col items-center justify-center px-4 text-center">
+      <h1 className="mb-1 font-bold text-6xl text-gray-900 dark:text-gray-100">{t('code')}</h1>
+      <h2 className="mb-2 font-semibold text-gray-900 text-xl dark:text-gray-100">{t('title')}</h2>
+      <p className="mb-6 text-gray-500 dark:text-gray-400">{t('description')}</p>
+      <Link
+        href="/"
+        className="rounded-md bg-dark px-6 py-2 text-light text-sm transition-opacity hover:opacity-80 dark:bg-light dark:text-dark"
+      >
+        {t('goHome')}
+      </Link>
+    </div>
+  );
+}

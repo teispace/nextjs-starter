@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0-alpha.5] — 2026-09-06
+
+### Added
+
+- **Authorization.** `AuthUser` carries optional `roles` and `permissions`; `hasRole`, `hasPermission`, and `hasEveryPermission` hide controls, `requireRole` and `requirePermission` guard pages through `forbidden()`, and a Server Action declares what it needs in `.metadata({ name, permissions })`. Every check fails closed, and none of them replace the API's own enforcement. `experimental.authInterrupts` is on, with `forbidden.tsx` and `unauthorized.tsx` in both layout variants.
+- **Rate limiting.** `rateLimit`, `callerKey`, and `tooManyRequests` in `@/lib/security`, applied to `POST /api/auth/refresh` (10 per minute) and the BFF proxy (120 per minute), answering 429 with `Retry-After` and the `RateLimit-*` headers. The default store is per process; `RateLimitStore` is two methods so a shared one drops in.
+
+### Verified
+
+- The flows that need a real API were run against one: cookie forwarding through the proxy, a refresh that relays `Set-Cookie`, server-side session reads, and both live rate limits.
+- The Docker image was built and run: around 300 MB, unprivileged user, correct security headers, JSON logs.
+
 ## [2.0.0-alpha.4] — 2026-09-06
 
 ### Added

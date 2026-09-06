@@ -8,6 +8,7 @@ import {
 } from '@/lib/http/server';
 import { generateRequestId, REQUEST_ID_HEADER } from '@/lib/http/shared';
 import { logger } from '@/lib/logger';
+import { callerKey, rateLimit, tooManyRequests } from '@/lib/security/rate-limit';
 
 /**
  * Backend-for-frontend proxy: `/api/backend/<path>` forwards to the API's
@@ -31,7 +32,27 @@ const RELAY_RESPONSE_HEADERS = [
 ];
 const BODYLESS_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+/**
+ * The proxy turns one browser request into one upstream request, so it is
+ * the cheapest way to hammer the API through this origin. The ceiling is
+ * generous enough that an ordinary session never meets it and low enough
+ * that a script notices. Raise it per route if you have a chatty screen,
+ * and use a shared store once more than one instance runs.
+ */
+const PROXY_LIMIT = 120;
+const PROXY_WINDOW_MS = 60_000;
+
 const proxy = async (request: NextRequest, { params }: RouteContext<'/api/backend/[...path]'>) => {
+  const limit = await rateLimit({
+    key: await callerKey('api-proxy'),
+    limit: PROXY_LIMIT,
+    windowMs: PROXY_WINDOW_MS,
+  });
+  if (!limit.ok) {
+    logger.warn({ retryAfter: limit.retryAfter }, 'API proxy rate limited');
+    return tooManyRequests(limit);
+  }
+
   const { path } = await params;
   const target = `${getServerApiBaseUrl()}/${path.map(encodeURIComponent).join('/')}${request.nextUrl.search}`;
   const requestId = (await readIncomingRequestId()) ?? generateRequestId();
